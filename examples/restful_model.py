@@ -19,7 +19,7 @@ class Question(models.Model):
 @rest(without=["post", "delete", "patch"])
 class Choice(models.Model):
     id = models.PrimaryKeyField()
-    question = models.ForeignKeyField(Question)
+    question = models.ForeignKey(Question)
     choice_text = models.Char(max_length=200)
     votes = models.Integer()
 
@@ -28,4 +28,3 @@ class Choice(models.Model):
 
 if __name__ == "__main__":
     app.run()
-    

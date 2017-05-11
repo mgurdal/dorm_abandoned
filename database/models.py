@@ -43,7 +43,7 @@ class MetaModel(type):
 
 
 class Model(metaclass=MetaModel):
-    
+    """Base model"""
     __metaclass__ = MetaModel
 
     def __init__(self, **kwargs):
@@ -148,7 +148,7 @@ class Varchar(Field):
         return '"{0}"'.format(str(data))
 
 class Text(Field):
-    """SQLite Varchar field"""
+    """SQLite Text field"""
     def __init__(self):
         super(Text, self).__init__('TEXT')
 
@@ -167,18 +167,18 @@ class DateTime(Field):
         
         return str(data)    
 
-class PrimaryKeyField(Integer):
+class PrimaryKey(Integer):
     def __init__(self):
-        super(PrimaryKeyField, self).__init__()
+        super(PrimaryKey, self).__init__()
 
     def create_sql(self):
         return '"{0}" {1} NOT NULL PRIMARY KEY'.format(self.name, self.column_type)
 
 
-class ForeignKeyField(Integer):
+class ForeignKey(Integer):
     def __init__(self, to_table):
         self.to_table = to_table
-        super(ForeignKeyField, self).__init__()
+        super(ForeignKey, self).__init__()
 
     def create_sql(self):
         return '{column_name} {column_type} NOT NULL REFERENCES "{tablename}" ("{to_column}")'.format(
@@ -189,7 +189,7 @@ class ForeignKeyField(Integer):
         )
 
 
-class ForeignKeyReverseField(object):
+class ForeignKeyReverse(object):
     def __init__(self, from_table):
         self.from_table = from_table
         self.name = None
@@ -205,7 +205,7 @@ class ForeignKeyReverseField(object):
         self.db = db
         self.from_model = self.db.__tables__[self.from_table]
         for k, v in self.from_model.__dict__.items():
-            if isinstance(v, ForeignKeyField) and v.to_table == self.tablename:
+            if isinstance(v, ForeignKey) and v.to_table == self.tablename:
                 self.relate_column = k
 
     def all(self):
@@ -218,7 +218,7 @@ class ForeignKeyReverseField(object):
         return self.from_model.select().where(**{self.relate_column: self.instance_id})
 
 
-class ManyToManyFieldBase(object):
+class ManyToManyBase(object):
     def __init__(self, to_model):
         self.to_model = to_model
 
@@ -265,12 +265,12 @@ class ManyToManyFieldBase(object):
         return self.to_model.select().where(where_sql)
 
 
-class ManyToManyField(ManyToManyFieldBase):
+class ManyToMany(ManyToManyBase):
     def __init__(self, to_model):
-        super(ManyToManyField, self).__init__(to_model)
+        super(ManyToMany, self).__init__(to_model)
 
     def update_attr(self, name, tablename, db):
-        super(ManyToManyField, self).update_attr(name, tablename, db)
+        super(ManyToMany, self).update_attr(name, tablename, db)
         if self.to_model not in self.db.__tables__.values():
             raise DatabaseException('Related table "{0}" not exists'.format(self.to_model.__tablename__))
 
@@ -303,7 +303,7 @@ class ManyToManyField(ManyToManyFieldBase):
         self.delete_reversed_field()
 
     def create_reversed_field(self):
-        field = ManyToManyFieldBase(self.db.__tables__[self.tablename])
+        field = ManyToManyBase(self.db.__tables__[self.tablename])
         field.db = self.db
         field.name = '{0}s'.format(self.tablename)
         field.to_table, field.tablename = self.tablename, self.to_table

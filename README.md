@@ -12,7 +12,7 @@ class Question(models.Model):
     pub_date = models.DateTime()
 
 class Choice(models.Model):
-    question = models.ForeignKeyField(Question)
+    question = models.ForeignKey(Question)
     choice_text = models.Char(max_length=200)
     votes = models.Integer()
 ```
@@ -52,15 +52,15 @@ from services.restful import rest, app
 # accessable with host:port/question or host:port/question/id
 @rest()
 class Question(models.Model):
-    id = models.PrimaryKeyField()
+    id = models.PrimaryKey()
     question_text = models.Char(max_length=200)
     pub_date = models.DateTime()
 
 # restrict http methods
 @rest(without=["post", "delete", "patch"])
 class Choice(models.Model):
-    id = models.PrimaryKeyField()
-    question = models.ForeignKeyField(Question)
+    id = models.PrimaryKey()
+    question = models.ForeignKey(Question)
     choice_text = models.Char(max_length=200)
     votes = models.Integer()
 

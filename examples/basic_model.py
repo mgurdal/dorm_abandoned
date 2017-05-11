@@ -15,7 +15,7 @@ class Question(models.Model):
         return str(vars(self))
 
 class Choice(models.Model):
-    question = models.ForeignKeyField(Question)
+    question = models.ForeignKey(Question)
     choice_text = models.Char(max_length=200)
     votes = models.Integer()
 
