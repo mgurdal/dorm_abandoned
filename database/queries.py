@@ -1,106 +1,17 @@
-# coding: utf-8
-# %load ORM/database.py
-
-
-
 """
-    ORM for sqlite3 like Django ORM.
-
-    Usage:
-                >>>from datetime import datetime
-                >>>import database
-
-                >>>db = database.Sqlite('blog.db')
-
-                >>>class Post(db.Model):
-                ...    title = database.CharField(20)
-                ...    content = database.TextField()
-                ...    created_time = database.DateTimeField()
-
-                >>>db.create_table(Post)
-
-                >>>post = Post(title='post title', content='post content', created_time=datetime.now())
-                >>>post.save()
-
-                >>>post.id, post.title, post.content
-                Out: (5, 'post title', 'post content', datetime.datetime(2016, 1, 6, 17, 25, 37, 342000))
-
-
-                >>>print Post.select().where(id=5).all()
-                Out: [<Post post title>]
-
-    The ManyToManyField just like Django ManyToManyField:
-
-                >>>class Tag(db.Model):
-                ...    name = database.CharField(50)
-                ...    posts = database.ManyToManyField(Post)
-
-    When create table from class `Tag`, ORM will auto-create a table `post_tag` which referenced `Post` and `Tag`.
-    We can add tag to the post like this:
-
-                >>>tag = Tag(name='tag')
-                >>>tag.save()
-                >>>post.tags.add(tag)
-                >>>post.tags.all()
-                Out: [<Tag tag>]
-
+sql queries in here
 """
 
-import sqlite3
-import threading
-
+import pandas as pd
 
 ENCODING_TYPE = 'utf-8'
 
-class Sqlite(threading.local):
-    def __init__(self, database):
-        super(Sqlite, self).__init__()
-        self.database = database
-        self.conn = sqlite3.connect(self.database,
-                                    detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+def unicode_str(s):
+    return s.encode(ENCODING_TYPE) if isinstance(s, str) else s
 
-        self.__tables__ = {}
-        setattr(self, 'Model', Model)
-        setattr(self.Model, '__db__', self)
-
-    def create_table(self, model):
-        tablename = model.__tablename__
-        create_sql = ', '.join(field.create_sql() for field in model.__fields__.values())
-        self.execute('create table {0} ({1});'.format(tablename, create_sql), commit=True)
-
-        if tablename not in self.__tables__.keys():
-            self.__tables__[tablename] = model
-
-        for field in model.__refed_fields__.values():
-            if isinstance(field, ManyToManyField):
-                field.create_m2m_table()
-        
-    def drop_table(self, model):
-        tablename = model.__tablename__
-        self.execute('drop table {0};'.format(tablename), commit=True)
-        del self.__tables__[tablename]
-
-        for name, field in model.__refed_fields__.items():
-            if isinstance(field, ManyToManyField):
-                field.drop_m2m_table()
-
-    def commit(self):
-        self.conn.commit()
-
-    def rollback(self):
-        self.conn.rollback()
-
-    def close(self):
-        self.conn.close()
-
-    def execute(self, sql, commit=False):
-        cursor = self.conn.cursor()
-        print(sql)
-        cursor.execute(sql)
-        if commit:
-            self.commit()
-        return cursor
-
+class DatabaseException(Exception):
+    """Base database exception"""
+    pass
 
 class SelectQuery(object):
     """ select title, content from post where id = 1 and title = "my title";
@@ -137,6 +48,7 @@ class SelectQuery(object):
         self.base_sql = '{0} where {1};'.format(self.base_sql.rstrip(';'), ' and '.join(where_list))
         return self
 
+  
     def _base_function(self, func):
         sql = self.base_sql.format(
             columns='{0}({1})'.format(func, self.query),
@@ -169,6 +81,7 @@ class SelectQuery(object):
         Post.select().orderby('id', 'desc').all()
         """
         self.base_sql = '{0} order by {1} {2};'.format(self.base_sql.rstrip(';'), column, order)
+        print(self)
         return self
 
     def like(self, pattern):
@@ -181,12 +94,21 @@ class SelectQuery(object):
         self.base_sql = '{0} like "{1}";'.format(self.base_sql.rstrip(';'), pattern)
         return self
 
+    def as_df(self):
+        """Turns sql query result into pandas dataframe"""
+        model_list = self._execute(self.sql)
+        for mdl in model_list:
+            colum_names = list(vars(mdl).keys())
+        df = pd.DataFrame([list(map(lambda att: getattr(b, att), vars(b).keys())) for b in model_list], columns=colum_names)
+        df.index = df['id']
+        del df['id']
+        return df
+
     def _execute(self, sql):
         cursor = self.model.__db__.execute(sql)
         descriptor = list(i[0] for i in cursor.description)
         records = cursor.fetchall()
-        query_set = [self._make_instance(descriptor,
-                                         map(unicode_str, record)) for record in records]
+        query_set = [self._make_instance(descriptor, map(unicode_str, record)) for record in records]
         return query_set
 
     def _make_instance(self, descriptor, record):
@@ -196,7 +118,7 @@ class SelectQuery(object):
             return None
 
         for name, field in instance.__refed_fields__.items():
-            if isinstance(field, fields.ForeignKeyReverseField) or isinstance(field, ManyToManyFieldBase):
+            if isinstance(field, ForeignKeyReverseField) or isinstance(field, ManyToManyFieldBase):
                 field.instance_id = instance.id
 
         return instance
@@ -243,7 +165,3 @@ class DeleteQuery(object):
 
     def commit(self):
         return self.model.__db__.execute(sql=self.sql, commit=True)
-
-
-def unicode_str(s):
-    return s.encode(ENCODING_TYPE) if isinstance(s, str) else s
