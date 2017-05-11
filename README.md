@@ -1,7 +1,7 @@
 # scientific_orm
-An Sqllite3 ORM with some statistics ultilities and machine learning futures
+    An Sqllite3 ORM with some statistics ultilities and machine learning futures
 
-# Create Models
+## Create Models
 ```python
 from datetime import datetime
 from database.drivers import Sqlite
@@ -17,7 +17,7 @@ class Choice(models.Model):
     votes = models.Integer()
 ```
 
-# Make Queries
+## Make Queries
 ```python
 # Create the database file (also opens the transaction)
 with Sqlite("poll.db") as db:
@@ -42,7 +42,7 @@ with Sqlite("poll.db") as db:
         all_choices = Choice.select().all()
 ```
 
-# RESTful Service
+## RESTful Service
 
 ```python
 from datetime import datetime
