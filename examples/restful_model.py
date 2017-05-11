@@ -1,5 +1,5 @@
 """
-Simple poll app
+Simple poll app with RESTful service
 """
 from pprint import pprint
 from datetime import datetime
