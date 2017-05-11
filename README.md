@@ -39,7 +39,9 @@ with Sqlite("poll.db") as db:
     with Sqlite("poll.db") as db:
         first_question = Question.select().where(id=1).first()
         red_choices = Choice.select().where(choice_text="red").all()
-        all_choices = Choice.select().all()
+
+        # Get results as pandas.DataFrame
+        all_choices_as_df = Choice.select().as_df()
 ```
 
 ## RESTful Service

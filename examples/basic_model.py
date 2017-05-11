@@ -6,6 +6,7 @@ from pprint import pprint
 from datetime import datetime
 from database.drivers import Sqlite
 from database import models
+import matplotlib.pyplot as plt
 
 class Question(models.Model):
     question_text = models.Char(max_length=200)
@@ -42,7 +43,9 @@ def main():
     with Sqlite("poll.db") as db:
         first_question = Question.select().where(id=1).first()
         red_choices = Choice.select().where(choice_text="red").all()
-        all_choices = Choice.select().all()
+
+        # Get results as pandas.DataFrame
+        all_choices_as_df = Choice.select().as_df()
 
 if __name__ == '__main__':
     main()

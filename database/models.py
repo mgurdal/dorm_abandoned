@@ -23,17 +23,17 @@ class MetaModel(type):
         refed_fields = {}
         has_primary_key = False
         for field_name, field in cls.__dict__.items():
-            if isinstance(field, ForeignKeyReverseField) or isinstance(field, ManyToManyField):
+            if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToMany):
                 field.update_attr(field_name, cls.__tablename__, cls.__db__)
                 refed_fields[field_name] = field
             if isinstance(field, Field):
                 field.name = field_name
                 fields[field_name] = field
-                if isinstance(field, PrimaryKeyField):
+                if isinstance(field, PrimaryKey):
                     has_primary_key = True
         # todo
         if not has_primary_key:
-            pk = PrimaryKeyField()
+            pk = PrimaryKey()
             pk.name = 'id'
             fields['id'] = pk
 
@@ -88,7 +88,7 @@ class Model(metaclass=MetaModel):
         self.id = cursor.lastrowid
 
         for name, field in self.__refed_fields__.items():
-            if isinstance(field, ForeignKeyReverseField) or isinstance(field, ManyToManyFieldBase):
+            if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
                 field.instance_id = self.id
 """
 Create Field based classes here to represent the database columns
