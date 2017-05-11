@@ -33,15 +33,16 @@ def main():
         # insert some data
         question = Question(question_text="What is your favorite color?", pub_date=datetime.now())
         question.save()
-        choice_1 = Choice(question=question.id, choice_text="red", votes=0)
-        choice_2 = Choice(question=question.id, choice_text="blue", votes=0)
+        choice_1 = Choice(question=question.id, choice_text="green", votes=0)
+        choice_2 = Choice(question=question.id, choice_text="yellow", votes=0)
         choice_1.save()
         choice_2.save()
 
     # read from database
     with Sqlite("poll.db") as db:
-        pprint(Question.select().all())
-        pprint(Choice.select().all())
+        first_question = Question.select().where(id=1).first()
+        red_choices = Choice.select().where(choice_text="red").all()
+        all_choices = Choice.select().all()
 
 if __name__ == '__main__':
     main()

@@ -20,7 +20,7 @@ def ignore_404s(request, exception):
                  'results': None,
                  })
 
-def rest(app, without=[]):
+def rest(without=[]):
     """Add rest features:
         get_object: gets the instance of database model
         get: gets serialized database model
@@ -140,11 +140,9 @@ def rest(app, without=[]):
                 elif method == "delete":
                     setattr(view_, method, delete)
             return view_
-        
+
         generic_view = add_method(generic_view, generic_serializer)
         app.add_route(generic_view.as_view(), '/'+generic_name.lower()+'/')
         app.add_route(generic_view.as_view(), '/'+generic_name.lower()+'/'+'<'+'generic_id:int>/')
-        
-        
         return cls
     return decorator

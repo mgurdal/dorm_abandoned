@@ -4,8 +4,8 @@ Test the ORM queries here
 import os
 import unittest
 from datetime import datetime
-from ..database.drivers import Sqlite
-from ..database import models
+from database.drivers import Sqlite
+from database import models
 
 class ModelTestCase(unittest.TestCase):
     """
@@ -28,7 +28,9 @@ class ModelTestCase(unittest.TestCase):
             text_field = models.Text()
             datetime_field = models.DateTime()
 
-        self.test_model = TestModel(int_field=1, text_field="some_text", datetime_field=datetime.now())
+        self.test_model = TestModel(int_field=1,
+                                    text_field="some_text",
+                                    datetime_field=datetime.now())
         self.database.create_table(TestModel) # needs to be mocked
         query = "SELECT name FROM sqlite_master WHERE type='table' AND name='{}';"
         cursor = self.database.execute(query.format(TestModel.__tablename__))
@@ -66,9 +68,10 @@ class QueryTestCase(unittest.TestCase):
         self.database.create_table(TestModel)
         self.test_model = TestModel(test_int=1, test_text="some_text", test_datetime=datetime.now())
         self.test_model.save()
+        
     def test_select_query(self):
         sample = self.test_model.select().first()
-        self.
+        self.assertIsInstance(sample, self.test_model.__class__)
 
     def tearDown(self):
         del self.test_model

@@ -7,11 +7,7 @@ from datetime import datetime
 from database import models
 from services.restful import rest, app
 
-
-
-
-
-@rest(app, without=[])
+@rest()
 class Question(models.Model):
     id = models.PrimaryKeyField()
     question_text = models.Char(max_length=200)
@@ -20,8 +16,7 @@ class Question(models.Model):
     def __repr__(self):
         return str(vars(self))
 
-
-@rest(app, without=[])
+@rest(without=["post", "delete", "patch"])
 class Choice(models.Model):
     id = models.PrimaryKeyField()
     question = models.ForeignKeyField(Question)
@@ -31,3 +26,5 @@ class Choice(models.Model):
     def __repr__(self):
         return str(vars(self))
 
+if __name__ == "__main__":
+    app.run()

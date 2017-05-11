@@ -71,11 +71,11 @@ class ModelSerializer(Serializer, metaclass=ModelSerializerMeta):
                                     ('The serializer does not defines the method '
                                     'for attribute {}').format(f)
                                 )
-                else:
-                    field_class = getattr(model.__class__, f)
-                    return_dict[f] = field_class._serialize_data(
-                        getattr(model, f)
-                    )
+                    else:
+                        field_class = getattr(model.__class__, f)
+                        return_dict[f] = field_class._serialize_data(
+                            getattr(model, f)
+                        )
                 return_list.append(return_dict)
 
             return return_list
