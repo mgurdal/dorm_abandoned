@@ -28,3 +28,4 @@ class Choice(models.Model):
 
 if __name__ == "__main__":
     app.run()
+    
