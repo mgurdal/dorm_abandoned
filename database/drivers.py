@@ -2,6 +2,39 @@ import threading
 import sqlite3
 import pandas as pd
 from .models import Model
+class Cursor(object):
+
+    def __init__(self, conn, query, step=20, forward=0):
+        self._conn = conn
+        self._query = query
+        self._results = []
+
+        self._step = step
+        self._forward = forward
+
+    async def execute(self):
+        
+        cursor = self._conn.execute(self._query)
+
+        if self._forward:
+            cursor.forward(self._forward)
+
+        if not cursor:
+            raise StopAsyncIteration()
+        return cursor
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if self._cursor is None:
+            self._results = await self.execute()
+
+        if not self._results:
+            self._forward = self._forward + self._step
+            self._results = await self.execute()
+
+        return self._results.pop(0)
 
 class Sqlite(threading.local):
     def __init__(self, database):
@@ -42,7 +75,7 @@ class Sqlite(threading.local):
 
     def close(self):
         self.conn.close()
-    
+
     def __enter__(self):
         return self
 
@@ -50,9 +83,19 @@ class Sqlite(threading.local):
         self.close()
 
     def execute(self, sql, commit=False):
-        cursor = self.conn.cursor()
-        #print(sql)
-        cursor.execute(sql)
+            cursor = self.conn.cursor()
+            #print(sql)
+            cursor.execute(sql)
+            if commit:
+                self.commit()
+            return cursor
+
+class AsyncSqlite(Sqlite):
+    def __init__(self, *args, **kwargs):
+        super(AsyncSqlite, self).__init__(*args, **kwargs)
+
+    async def execute(self, sql, commit=False):
+        cursor = await Cursor(self.conn, sql).execute()
         if commit:
             self.commit()
         return cursor
