@@ -28,7 +28,7 @@ class Integer(Field):
         return str(int(data))
     
     def _serialize_data(self, data):
-        return str(int(data))
+        return data
 
 
 class Char(Field):
@@ -248,7 +248,7 @@ class MetaModel(type):
 
         if hasattr(cls, '__dbs__'):
             getattr(cls, '__dbs__')[0].__tables__[cls.__tablename__] = cls
-        print(name)
+        
         fields = {}
         refed_fields = {}
         has_primary_key = False

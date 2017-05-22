@@ -1,9 +1,7 @@
 """
 Simple poll app with RESTful service
 """
-from pprint import pprint
 from datetime import datetime
-
 from database import models
 from services.restful import rest, app
 
@@ -16,7 +14,7 @@ class Question(models.Model):
     def __repr__(self):
         return str(vars(self))
 
-@rest(without=["post", "delete", "patch"])
+@rest(methods=["post", "delete", "patch"])
 class Choice(models.Model):
     id = models.PrimaryKey()
     question = models.ForeignKey(Question)

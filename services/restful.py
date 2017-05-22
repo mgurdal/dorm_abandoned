@@ -1,14 +1,18 @@
+# built-in
+from contextlib import ExitStack
+
+# 3rd party
 from sanic import Sanic
 from sanic.exceptions import NotFound
 from sanic.response import json
 from sanic.views import HTTPMethodView
 from sanic.request import Request
-from utils.serializers import ModelSerializer, SerializerMethod
-
 from multipledispatch import dispatch
 
+# framework
+from utils.serializers import ModelSerializer, SerializerMethod
 from database.drivers import Sqlite
-from config import DATABASE_NAME
+from config import DATABASES
 
 app = Sanic(name=__name__)
 
@@ -21,7 +25,7 @@ def ignore_404s(request, exception):
                  'results': None,
                  })
 
-def rest(without=[]):
+def rest(methods=[], databases=[]):
     """Add rest features:
         get_object: gets the instance of database model
         get: gets serialized database model
@@ -45,9 +49,9 @@ def rest(without=[]):
             def get_object(self, request, generic_id):
                 """gets the instance of database model"""
                 try:
-                    print(dir(cls))
                     # on database consults
-                    with Sqlite(DATABASE_NAME) as db:
+                    with ExitStack() as stack:
+                        dbs = [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
                         generic_model = cls.select().where(**{'id': generic_id}).first()
 
                 except Exception as ex:
@@ -58,9 +62,10 @@ def rest(without=[]):
                 """gets the instance of database model"""
                 try:
                     # on database consults
-                    with Sqlite(DATABASE_NAME) as db:
+                    with ExitStack() as stack:
+                        dbs = [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
                         generic_model = cls.select().all()
-
+                        
                 except Exception as ex:
                     raise NotFound(ex.args[0])
                 return generic_model
@@ -129,7 +134,7 @@ def rest(without=[]):
 
            
             for method in ["get_object", "get", "put", "patch", "delete", "get_objects"]:
-                if method in without:
+                if method in methods:
                     continue
                 elif method == "get_object":
                     setattr(view_, method, get_object)
