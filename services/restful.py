@@ -3,11 +3,12 @@ from sanic.exceptions import NotFound
 from sanic.response import json
 from sanic.views import HTTPMethodView
 from sanic.request import Request
-from .serializers import ModelSerializer, SerializerMethod
+from utils.serializers import ModelSerializer, SerializerMethod
 
 from multipledispatch import dispatch
 
 from database.drivers import Sqlite
+from config import DATABASE_NAME
 
 app = Sanic(name=__name__)
 
@@ -37,14 +38,16 @@ def rest(without=[]):
                                   {"model":cls, "_fields":cls.__fields__})
         setattr(generic_serializer, "Meta", type("Meta", (), {"_fields":cls.__fields__}))
 
+         # I know what you see below is shameful but html methods are kinda static
         def add_method(view_, generic_serializer_):
             """Adds pre-defined methods to targer view"""
             
             def get_object(self, request, generic_id):
                 """gets the instance of database model"""
                 try:
+                    print(dir(cls))
                     # on database consults
-                    with Sqlite("poll.db") as db:
+                    with Sqlite(DATABASE_NAME) as db:
                         generic_model = cls.select().where(**{'id': generic_id}).first()
 
                 except Exception as ex:
@@ -55,7 +58,7 @@ def rest(without=[]):
                 """gets the instance of database model"""
                 try:
                     # on database consults
-                    with Sqlite("poll.db") as db:
+                    with Sqlite(DATABASE_NAME) as db:
                         generic_model = cls.select().all()
 
                 except Exception as ex:
@@ -124,6 +127,7 @@ def rest(without=[]):
             # add arg parser to generic view
             setattr(view_, "arg_parser", arg_parser)
 
+           
             for method in ["get_object", "get", "put", "patch", "delete", "get_objects"]:
                 if method in without:
                     continue

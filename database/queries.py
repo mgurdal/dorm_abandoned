@@ -1,8 +1,11 @@
 """
 sql queries in here
 """
-
 import pandas as pd
+import dask.dataframe as dd
+
+from database import models
+from config import DATABASES
 
 ENCODING_TYPE = 'utf-8'
 
@@ -48,15 +51,20 @@ class SelectQuery(object):
         self.base_sql = '{0} where {1};'.format(self.base_sql.rstrip(';'), ' and '.join(where_list))
         return self
 
-  
+
     def _base_function(self, func):
         sql = self.base_sql.format(
             columns='{0}({1})'.format(func, self.query),
             tablename=self.model.__tablename__
         )
-        cursor = self.model.__db__.execute(sql=sql, commit=True)
-        record = cursor.fetchone()
-        return record[0]
+        #record = 
+        # parallel multi db execute
+        for db in self.model.__dbs__:
+            
+            cursor = db.execute(sql=sql, commit=True)
+            record = cursor.fetchone()
+            print(type(record[0]))
+            return record[0]
 
     def count(self):
         return self._base_function('count')
@@ -94,20 +102,28 @@ class SelectQuery(object):
         self.base_sql = '{0} like "{1}";'.format(self.base_sql.rstrip(';'), pattern)
         return self
 
+
     def as_df(self):
         """Turns sql query result into pandas dataframe"""
-        model_list = self._execute(self.sql)
-        for mdl in model_list:
-            colum_names = list(vars(mdl).keys())
-        df = pd.DataFrame([list(map(lambda att: getattr(b, att), vars(b).keys())) for b in model_list], columns=colum_names)
-        df.index = df['id']
+        #ques = [executor.submit(pd.read_sql, self.sql, self.model.__db__.conn)]
+        df = pd.read_sql(self.sql, self.model.__dbs__[0].conn)
+        for new_frame in self.model.__dbs__[1:]:
+            df = df.append(pd.read_sql(self.sql, new_frame.conn), ignore_index=True)
+        df.set_index(df['id'])
         del df['id']
         return df
 
+    def as_distributed_df(self):
+        """Turns sql query result into pandas dataframe"""
+        df = dd.from_pandas(self.as_df(), npartitions=5)
+        return df
+
     def _execute(self, sql):
-        cursor = self.model.__db__.execute(sql)
-        descriptor = list(i[0] for i in cursor.description)
-        records = cursor.fetchall()
+        # parallel multi db execute
+        cursors = [db.execute(sql) for db in self.model.__dbs__] # for
+        descriptor = list(i[0] for cursor in cursors for i in cursor.description)
+        #records = [gevent.spawn(cursor.fetchall) for cursor in cursors]
+        records = [cursor.fetchall() for cursor in cursors]
         query_set = [self._make_instance(descriptor, map(unicode_str, record)) for record in records]
         return query_set
 
@@ -118,9 +134,8 @@ class SelectQuery(object):
             return None
 
         for name, field in instance.__refed_fields__.items():
-            if isinstance(field, ForeignKeyReverseField) or isinstance(field, ManyToManyFieldBase):
+            if isinstance(field, models.ForeignKeyReverse) or isinstance(field, models.ManyToManyBase):
                 field.instance_id = instance.id
-
         return instance
 
 
@@ -149,6 +164,7 @@ class UpdateQuery(object):
         )
 
     def commit(self):
+        # parallel multi db execute
         return self.model.__db__.execute(sql=self.sql, commit=True)
 
 
@@ -164,4 +180,5 @@ class DeleteQuery(object):
             self.sql = '{0} where {1}'.format(self.sql.rstrip(';'), ' and '.join(where_list))
 
     def commit(self):
+        # parallel multi db execute
         return self.model.__db__.execute(sql=self.sql, commit=True)

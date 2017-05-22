@@ -1,6 +1,8 @@
 """
 Serialize models here
 """
+#import jsonpickle
+
 
 class Serializer(object):
     pass
@@ -107,3 +109,11 @@ class ModelSerializer(Serializer, metaclass=ModelSerializerMeta):
                     )
 
             return return_dict
+
+def jsonify(model):
+    """Generates sanic HTTPMethodView out of decorated class"""
+    generic_name = model.__name__ # model does not have name
+    generic_serializer = type(generic_name+"Serializer",
+                              (ModelSerializer,),
+                              {"model":model, "_fields":model.__fields__})
+    return generic_serializer.serialize(model)

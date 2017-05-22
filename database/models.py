@@ -1,95 +1,8 @@
 
-from .queries import *
-
-class MetaModel(type):
-    """
-        Metamodel that initializes the database table model as creation of model class
-    """
-    def __new__(mcs, name, bases, attrs):
-        if name == 'Model':
-            return super(MetaModel, mcs).__new__(mcs, name, bases, attrs)
-
-        cls = super(MetaModel, mcs).__new__(mcs, name, bases, attrs)
-
-        if 'Meta' not in attrs.keys() or not hasattr(attrs['Meta'], 'db_table'):
-            setattr(cls, '__tablename__', name.lower())
-        else:
-            setattr(cls, '__tablename__', attrs['Meta'].db_table)
-
-        if hasattr(cls, '__db__'):
-            getattr(cls, '__db__').__tables__[cls.__tablename__] = cls
-
-        fields = {}
-        refed_fields = {}
-        has_primary_key = False
-        for field_name, field in cls.__dict__.items():
-            if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToMany):
-                field.update_attr(field_name, cls.__tablename__, cls.__db__)
-                refed_fields[field_name] = field
-            if isinstance(field, Field):
-                field.name = field_name
-                fields[field_name] = field
-                if isinstance(field, PrimaryKey):
-                    has_primary_key = True
-        # todo
-        if not has_primary_key:
-            pk = PrimaryKey()
-            pk.name = 'id'
-            fields['id'] = pk
-
-        setattr(cls, '__fields__', fields)
-        setattr(cls, '__refed_fields__', refed_fields)
-        return cls
+from database.queries import *
+from utils.serializers import jsonify
 
 
-class Model(metaclass=MetaModel):
-    """Base model"""
-    __metaclass__ = MetaModel
-
-    def __init__(self, **kwargs):
-        for name, field in kwargs.items():
-            if name not in self.__fields__.keys():
-                raise DatabaseException('Unknown column: {0}'.format(name))
-            setattr(self, name, field)
-
-        super(Model, self).__init__()
-
-    @classmethod
-    def get(cls, **kwargs):
-        return SelectQuery(cls).where(**kwargs).first()
-
-    @classmethod
-    def select(cls, *args):
-        return SelectQuery(cls, *args)
-
-    @classmethod
-    def update(cls, *args, **kwargs):
-        return UpdateQuery(cls, *args, **kwargs)
-
-    @classmethod
-    def delete(cls, *args, **kwargs):
-        return DeleteQuery(cls, *args, **kwargs)
-
-    def save(self):
-        base_query = 'insert into {tablename}({columns}) values({items});'
-        columns = []
-        values = []
-        for field_name, field_model in self.__fields__.items():
-            if hasattr(self, field_name) and not isinstance(getattr(self, field_name), Field):
-                columns.append(field_name)
-                values.append(field_model.sql_format(getattr(self, field_name)))
-
-        sql = base_query.format(
-            tablename=self.__tablename__,
-            columns=', '.join(columns),
-            items=', '.join(values)
-        )
-        cursor = self.__db__.execute(sql=sql, commit=True)
-        self.id = cursor.lastrowid
-
-        for name, field in self.__refed_fields__.items():
-            if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
-                field.instance_id = self.id
 """
 Create Field based classes here to represent the database columns
 """
@@ -280,8 +193,8 @@ class ManyToMany(ManyToManyBase):
 
         class_name = '{0}_{1}'.format(self.to_table, self.tablename)
         class_attrs = {
-            self.relate_column: ForeignKeyField(self.tablename),
-            self.to_column: ForeignKeyField(self.to_table)
+            self.relate_column: ForeignKey(self.tablename),
+            self.to_column: ForeignKey(self.to_table)
         }
         m2m_model = type(class_name, (Model, ), class_attrs)
 
@@ -317,3 +230,97 @@ class ManyToMany(ManyToManyBase):
         to_column = '{0}s'.format(self.tablename)
         delattr(self.to_model, to_column)
         del self.to_model.__refed_fields__[to_column]
+
+class MetaModel(type):
+    """
+        Metamodel that initializes the database table model as creation of model class
+    """
+    def __new__(mcs, name, bases, attrs):
+        if name == 'Model':
+            return super(MetaModel, mcs).__new__(mcs, name, bases, attrs)
+
+        cls = super(MetaModel, mcs).__new__(mcs, name, bases, attrs)
+
+        if 'Meta' not in attrs.keys() or not hasattr(attrs['Meta'], 'db_table'):
+            setattr(cls, '__tablename__', name.lower())
+        else:
+            setattr(cls, '__tablename__', attrs['Meta'].db_table)
+
+        if hasattr(cls, '__dbs__'):
+            getattr(cls, '__dbs__')[0].__tables__[cls.__tablename__] = cls
+        print(name)
+        fields = {}
+        refed_fields = {}
+        has_primary_key = False
+        for field_name, field in cls.__dict__.items():
+            if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToMany):
+                field.update_attr(field_name, cls.__tablename__, cls.__dbs__[0])
+                refed_fields[field_name] = field
+
+            if isinstance(field, Field) or isinstance(field, Model):
+                field.name = field_name
+                fields[field_name] = field
+                if isinstance(field, PrimaryKey):
+                    has_primary_key = True
+                
+        # todo
+        if not has_primary_key:
+            pk = PrimaryKey()
+            pk.name = 'id'
+            fields['id'] = pk
+
+        setattr(cls, '__fields__', fields)
+        setattr(cls, '__refed_fields__', refed_fields)
+        return cls
+
+
+class Model(metaclass=MetaModel):
+    """Base model"""
+    __metaclass__ = MetaModel
+
+    def __init__(self, **kwargs):
+        for name, field in kwargs.items():
+            if name not in self.__fields__.keys():
+                raise DatabaseException('Unknown column: {0}, expected {1}.'.format(name, self.__fields__.keys()))
+            setattr(self, name, field)
+
+        super(Model, self).__init__()
+
+    @classmethod
+    def get(cls, **kwargs):
+        return SelectQuery(cls).where(**kwargs).first()
+
+    @classmethod
+    def select(cls, *args):
+        return SelectQuery(cls, *args)
+
+    @classmethod
+    def update(cls, *args, **kwargs):
+        return UpdateQuery(cls, *args, **kwargs)
+
+    @classmethod
+    def delete(cls, *args, **kwargs):
+        return DeleteQuery(cls, *args, **kwargs)
+
+    def save(self):
+        base_query = 'insert into {tablename}({columns}) values({items});'
+        columns = []
+        values = []
+        for field_name, field_model in self.__fields__.items():
+            if hasattr(self, field_name) and not isinstance(getattr(self, field_name), Field):
+                columns.append(field_name)
+                values.append(field_model.sql_format(getattr(self, field_name)))
+
+        sql = base_query.format(
+            tablename=self.__tablename__,
+            columns=', '.join(columns),
+            items=', '.join(values)
+        )
+        cursor = self.__db__.execute(sql=sql, commit=True)
+        self.id = cursor.lastrowid
+
+        for name, field in self.__refed_fields__.items():
+            if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
+                field.instance_id = self.id
+
+

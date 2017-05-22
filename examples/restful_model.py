@@ -9,7 +9,7 @@ from services.restful import rest, app
 
 @rest()
 class Question(models.Model):
-    id = models.PrimaryKeyField()
+    id = models.PrimaryKey()
     question_text = models.Char(max_length=200)
     pub_date = models.DateTime()
 
@@ -18,7 +18,7 @@ class Question(models.Model):
 
 @rest(without=["post", "delete", "patch"])
 class Choice(models.Model):
-    id = models.PrimaryKeyField()
+    id = models.PrimaryKey()
     question = models.ForeignKey(Question)
     choice_text = models.Char(max_length=200)
     votes = models.Integer()

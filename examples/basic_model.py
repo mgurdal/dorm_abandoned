@@ -23,7 +23,7 @@ class Choice(models.Model):
     def __repr__(self):
         return str(vars(self))
 
-def main():
+if __name__ == '__main__':
     """interact with database"""
     with Sqlite("poll.db") as db:
         try:
@@ -46,6 +46,3 @@ def main():
 
         # Get results as pandas.DataFrame
         all_choices_as_df = Choice.select().as_df()
-
-if __name__ == '__main__':
-    main()
