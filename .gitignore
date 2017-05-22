@@ -5,4 +5,4 @@
 bckup
 .vscode
 *.log
-*.ipynb_checkpoints
+.ipynb_checkpoints
