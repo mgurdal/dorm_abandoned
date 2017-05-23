@@ -50,10 +50,7 @@ def rest(methods=[], databases=[]):
                 """gets the instance of database model"""
                 try:
                     # on database consults
-                    with ExitStack() as stack:
-                       with ExitStack() as stack:
-                        [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
-                        generic_model = cls.select().where(**{'id': generic_id}).first()
+                    generic_model = cls.select().where(**{'id': generic_id}).first()
 
                 except Exception as ex:
                     raise NotFound(ex.args[0])
@@ -63,9 +60,7 @@ def rest(methods=[], databases=[]):
                 """gets the instance of database model"""
                 try:
                     # on database consults
-                    with ExitStack() as stack:
-                        [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
-                        generic_model = cls.select().all()
+                    generic_model = cls.select().all()
                         
                 except Exception as ex:
                     raise NotFound(ex.args[0])

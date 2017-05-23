@@ -16,7 +16,6 @@ class Choice(models.Model):
     votes = models.Integer()
 
 # assuming Question and Choice data already registered in databases    
-
 with ExitStack() as stack:
     [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
     # get dask distributed dataframe

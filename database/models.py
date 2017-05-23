@@ -1,7 +1,7 @@
 
 from database.queries import *
 from utils.serializers import jsonify
-
+import json
 
 """
 Create Field based classes here to represent the database columns
@@ -46,6 +46,7 @@ class Char(Field):
         
     def _serialize_data(self, data):
         return str(data)
+        
 
 class Varchar(Field):
     """SQLite Varchar field"""
@@ -86,7 +87,7 @@ class PrimaryKey(Integer):
 
     def create_sql(self):
         return '"{0}" {1} NOT NULL PRIMARY KEY'.format(self.name, self.column_type)
-
+    
 
 class ForeignKey(Integer):
     def __init__(self, to_table):
@@ -324,3 +325,5 @@ class Model(metaclass=MetaModel):
                 field.instance_id = self.id
 
 
+    def __str__(self):
+        return json.dumps(vars(self))
