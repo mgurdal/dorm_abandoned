@@ -59,7 +59,7 @@ from datetime import datetime
 from database import models
 from services.restful import rest, app
 
-# accessable with host:port/question or host:port/question/id
+# accessible with host:port/question or host:port/question/id
 @rest()
 class Question(models.Model):
     id = models.PrimaryKey()
