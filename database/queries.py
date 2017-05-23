@@ -114,7 +114,7 @@ class SelectQuery(object):
         return df
 
     def as_distributed_df(self):
-        """Turns sql query result into pandas dataframe"""
+        """Turns pandas dataframe into dask dataframe"""
         df = dd.from_pandas(self.as_df(), npartitions=5)
         return df
 
