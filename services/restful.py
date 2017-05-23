@@ -61,7 +61,7 @@ def rest(methods=[], databases=[]):
                 try:
                     # on database consults
                     generic_model = cls.select().all()
-                        
+
                 except Exception as ex:
                     raise NotFound(ex.args[0])
                 return generic_model
