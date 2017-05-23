@@ -316,7 +316,7 @@ class Model(metaclass=MetaModel):
             columns=', '.join(columns),
             items=', '.join(values)
         )
-        cursor = self.__db__.execute(sql=sql, commit=True)
+        cursor = self.__dbs__[0].execute(sql=sql, commit=True)
         self.id = cursor.lastrowid
 
         for name, field in self.__refed_fields__.items():

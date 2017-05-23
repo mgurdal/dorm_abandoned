@@ -1,7 +1,10 @@
 # coding: utf-8
+
+from contextlib import ExitStack
+
 from database import models
 from database.drivers import Sqlite
-import matplotlib.pyplot as plt
+from config import DATABASES
 
 class Question(models.Model):
     question_text = models.Char(max_length=200)
@@ -13,7 +16,9 @@ class Choice(models.Model):
     votes = models.Integer()
 
 # assuming Question and Choice data already registered in databases    
-with Sqlite("poll_1.db"), Sqlite("poll_2.db"):
+
+with ExitStack() as stack:
+    [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
     # get dask distributed dataframe
     ddf = Choice.select().as_distributed_df()
     result = ddf.votes.value_counts().compute()

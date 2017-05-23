@@ -33,13 +33,23 @@ with Sqlite("poll.db") as db:
         choice_1.save()
         choice_2.save()
 
-    # read from database
-    with Sqlite("poll.db") as db:
-        first_question = Question.select().where(id=1).first()
-        red_choices = Choice.select().where(choice_text="red").all()
+# read from database
+with Sqlite("poll.db") as db:
+    first_question = Question.select().where(id=1).first()
+    red_choices = Choice.select().where(choice_text="red").all()
 
-        # Get results as pandas.DataFrame
-        all_choices_as_df = Choice.select().as_df()
+    # Get results as pandas.DataFrame
+    all_choices_as_df = Choice.select().as_df()
+```
+## Multiple Database Connection & Parallel Processing
+```python
+with ExitStack() as stack:
+    [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
+    # get dask distributed dataframe
+    ddf = Choice.select().as_distributed_df()
+    result = ddf.votes.value_counts().compute()
+    most_common_10_votes = result.sort_values()[-10:]
+    print(most_common_10_votes)
 ```
 
 ## RESTful Service

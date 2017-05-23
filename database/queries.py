@@ -165,7 +165,8 @@ class UpdateQuery(object):
 
     def commit(self):
         # parallel multi db execute
-        return self.model.__db__.execute(sql=self.sql, commit=True)
+        return [db.execute(sql=self.sql, commit=True) for db in self.model.__dbs__]
+        
 
 
 class DeleteQuery(object):
@@ -181,4 +182,4 @@ class DeleteQuery(object):
 
     def commit(self):
         # parallel multi db execute
-        return self.model.__db__.execute(sql=self.sql, commit=True)
+        return [db.execute(sql=self.sql, commit=True) for db in self.model.__dbs__]

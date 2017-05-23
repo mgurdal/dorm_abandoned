@@ -3,7 +3,7 @@ import sqlite3
 import psycopg2
 from pymongo import MongoClient
 import pandas as pd
-from database.models import Model, ManyToMany
+from .models import Model, ManyToMany
 from utils.serializers import ModelSerializer
 
 class Sqlite(threading.local):
