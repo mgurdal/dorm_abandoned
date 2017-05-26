@@ -1,10 +1,13 @@
 
-from database.queries import *
-from utils.serializers import jsonify
+import sys
 import json
 from pprint import pprint
+
 from sqlite3 import OperationalError
-import sys
+
+from database.queries import *
+from utils.serializers import jsonify
+
 """
 Create Field based classes here to represent the database columns
 """
@@ -62,6 +65,11 @@ class Varchar(Field):
     def sql_format(self, data):
         """sql query format of data"""
         return '"{0}"'.format(str(data))
+
+class Email(Char):
+    # General Email Regex (RFC 5322 Official Standard)
+    result = re.match(pattern, string)
+
 
 class Text(Field):
     """SQLite Text field"""

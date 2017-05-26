@@ -25,6 +25,7 @@ if __name__ == "__main__":
                 db.create_table(Choice)
             except:
                 pass
+                
         # get dask distributed dataframe
         ddf = Choice.select().as_distributed_df()
         result = ddf.votes.value_counts().compute()

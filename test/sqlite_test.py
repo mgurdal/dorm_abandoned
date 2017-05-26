@@ -27,7 +27,7 @@ class ModelTestCase(unittest.TestCase):
         """
             Code setup
         """
-        self.database = Sqlite('test_1.db')
+        self.database = Sqlite(':memory:')
 
 
     def test_create_table(self):
