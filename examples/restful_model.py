@@ -26,5 +26,11 @@ class Choice(models.Model):
 if __name__ == "__main__":
     ## Multiple Database Connection & Parallel Processing
     with ExitStack() as stack:
-        [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
+        dbs = [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
+        for db in dbs:
+            try:
+                db.create_table(Question)
+                db.create_table(Choice)
+            except:
+                pass
         app.run()

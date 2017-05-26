@@ -1,10 +1,9 @@
-import sys
 import threading
 import sqlite3
-#import psycopg2
-#from pymongo import MongoClient
+import psycopg2
+from pymongo import MongoClient
 import pandas as pd
-from .models import Model, ManyToMany
+from ..models import Model, ManyToMany
 from utils.serializers import ModelSerializer
 
 class Sqlite(threading.local):
@@ -17,17 +16,13 @@ class Sqlite(threading.local):
         setattr(self, 'Model', Model)
         if not hasattr(self.Model, "__dbs__"):
             setattr(self.Model, '__dbs__', [])
-        
         self.Model.__dbs__.append(self)
-            #print(self.database)
-
+        
     def create_table(self, model):
         tablename = model.__tablename__
-        # Bug in here, foreign key does not work properly
         create_sql = ', '.join(field.create_sql() for field in model.__fields__.values())
-        #sys.stderr.write('create table {0} ({1});\n'.format(tablename, create_sql))
         self.execute('create table {0} ({1});'.format(tablename, create_sql), commit=True)
-        
+
         if tablename not in self.__tables__.keys():
             self.__tables__[tablename] = model
 
@@ -38,7 +33,7 @@ class Sqlite(threading.local):
     def drop_table(self, model):
         tablename = model.__tablename__
         self.execute('drop table {0};'.format(tablename), commit=True)
-        #del self.__tables__[tablename]
+        del self.__tables__[tablename]
 
         for name, field in model.__refed_fields__.items():
             if isinstance(field, ManyToMany):
@@ -52,22 +47,65 @@ class Sqlite(threading.local):
 
     def close(self):
         self.conn.close()
-        
+
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
-        #print("Closing")
-        pass
-    
-
+        self.close()
 
     def execute(self, sql, commit=False):
-    
             cursor = self.conn.cursor()
-            #sys.stderr.write(sql+"\n\n\n") # find out
-            print(sql)
-            cursor.execute(sql)
+            try:
+                cursor.execute(sql)
+            except Exception:
+                pass
             if commit:
                 self.commit()
             return cursor
+
+
+class Cursor(object):
+    
+    def __init__(self, conn, query, step=20, forward=0):
+        self._conn = conn
+        self._query = query
+        self._results = []
+
+        self._step = step
+        self._forward = forward
+
+    async def execute(self):
+        
+        cursor = self._conn.execute(self._query)
+
+        if self._forward:
+            cursor.forward(self._forward)
+
+        if not cursor:
+            raise StopAsyncIteration()
+        return cursor
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        if self._cursor is None:
+            self._results = await self.execute()
+
+        if not self._results:
+            self._forward = self._forward + self._step
+            self._results = await self.execute()
+
+        return self._results.pop(0)
+
+class AsyncSqlite(Sqlite):
+    def __init__(self, *args, **kwargs):
+        super(AsyncSqlite, self).__init__(*args, **kwargs)
+
+    async def execute(self, sql, commit=False):
+        cursor = await Cursor(self.conn, sql).execute()
+        if commit:
+            self.commit()
+        return cursor
+

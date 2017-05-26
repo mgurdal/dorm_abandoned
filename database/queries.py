@@ -57,13 +57,13 @@ class SelectQuery(object):
             columns='{0}({1})'.format(func, self.query),
             tablename=self.model.__tablename__
         )
-        #record = 
+
         # parallel multi db execute
         for db in self.model.__dbs__:
             
             cursor = db.execute(sql=sql, commit=True)
             record = cursor.fetchone()
-            print(type(record[0]))
+            #print(type(record[0]))
             return record[0]
 
     def count(self):
@@ -89,7 +89,7 @@ class SelectQuery(object):
         Post.select().orderby('id', 'desc').all()
         """
         self.base_sql = '{0} order by {1} {2};'.format(self.base_sql.rstrip(';'), column, order)
-        print(self)
+        #print(self)
         return self
 
     def like(self, pattern):
@@ -107,8 +107,13 @@ class SelectQuery(object):
         """Turns sql query result into pandas dataframe"""
         #ques = [executor.submit(pd.read_sql, self.sql, self.model.__db__.conn)]
         df = pd.read_sql(self.sql, self.model.__dbs__[0].conn)
+        df['database'] = self.model.__dbs__[0].database
+
         for new_frame in self.model.__dbs__[1:]:
-            df = df.append(pd.read_sql(self.sql, new_frame.conn), ignore_index=True)
+            new_piece = pd.read_sql(self.sql, new_frame.conn)
+            new_piece['database'] = new_frame.database
+            df = df.append(new_piece, ignore_index=True)
+            
         df.set_index(df['id'])
         del df['id']
         return df
@@ -120,22 +125,28 @@ class SelectQuery(object):
 
     def _execute(self, sql):
         # parallel multi db execute
-        cursors = [db.execute(sql) for db in self.model.__dbs__] # for
-        descriptor = list(i[0] for cursor in cursors for i in cursor.description)
+        cursors = [(db.execute(sql), db.database) for db in self.model.__dbs__] # for
+        
+        descriptor = list(i[0] for cursor in cursors for i in cursor[0].description)
         #records = [gevent.spawn(cursor.fetchall) for cursor in cursors]
-        records = [cursor.fetchall() for cursor in cursors]
-        query_set = [self._make_instance(descriptor, map(unicode_str, record)) for record in records]
+        records = [(cursor[0].fetchall(), cursor[1]) for cursor in cursors]
+        
+        query_set = [self._make_instance(descriptor, map(unicode_str, record[0][0]), record[1]) for record in records]
         return query_set
 
-    def _make_instance(self, descriptor, record):
+    def _make_instance(self, descriptor, record, database):
+        
         try:
+            #print(dict(zip(descriptor, record)))
             instance = self.model(**dict(zip(descriptor, record)))
+            setattr(instance, "_db", database)
+        
         except TypeError:
             return None
 
         for name, field in instance.__refed_fields__.items():
             if isinstance(field, models.ForeignKeyReverse) or isinstance(field, models.ManyToManyBase):
-                field.instance_id = instance.id
+                field.instance_id = vars(instance)['id']
         return instance
 
 

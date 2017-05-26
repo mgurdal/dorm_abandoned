@@ -2,7 +2,9 @@
 from database.queries import *
 from utils.serializers import jsonify
 import json
-
+from pprint import pprint
+from sqlite3 import OperationalError
+import sys
 """
 Create Field based classes here to represent the database columns
 """
@@ -89,18 +91,26 @@ class PrimaryKey(Integer):
         return '"{0}" {1} NOT NULL PRIMARY KEY'.format(self.name, self.column_type)
     
 
-class ForeignKey(Integer):
+class ForeignKey(Field):
     def __init__(self, to_table):
-        self.to_table = to_table
-        super(ForeignKey, self).__init__()
+        if not isinstance(to_table, str):
+            self.to_table = to_table.__tablename__
+        else:
+            self.to_table = to_table
+        super(ForeignKey, self).__init__('INTEGER')
 
     def create_sql(self):
-        return '{column_name} {column_type} NOT NULL REFERENCES "{tablename}" ("{to_column}")'.format(
+        fk_sql = '{column_name} {column_type} NOT NULL REFERENCES "{tablename}" ("{to_column}")'.format(
             column_name=self.name,
             column_type=self.column_type,
             tablename=self.to_table,
             to_column='id'
         )
+        return fk_sql
+
+    def sql_format(self, data):
+        """sql query format of data"""
+        return '"{0}"'.format(str(data))   
 
 
 class ForeignKeyReverse(object):
@@ -120,7 +130,8 @@ class ForeignKeyReverse(object):
         self.from_model = self.db.__tables__[self.from_table]
         for k, v in self.from_model.__dict__.items():
             if isinstance(v, ForeignKey) and v.to_table == self.tablename:
-                self.relate_column = k
+                print(k.__tablename__)
+                self.relate_column = k.__tablename__
 
     def all(self):
         return self._query_sql().all()
@@ -232,6 +243,7 @@ class ManyToMany(ManyToManyBase):
         delattr(self.to_model, to_column)
         del self.to_model.__refed_fields__[to_column]
 
+
 class MetaModel(type):
     """
         Metamodel that initializes the database table model as creation of model class
@@ -241,24 +253,28 @@ class MetaModel(type):
             return super(MetaModel, mcs).__new__(mcs, name, bases, attrs)
 
         cls = super(MetaModel, mcs).__new__(mcs, name, bases, attrs)
-
+        
         if 'Meta' not in attrs.keys() or not hasattr(attrs['Meta'], 'db_table'):
             setattr(cls, '__tablename__', name.lower())
         else:
             setattr(cls, '__tablename__', attrs['Meta'].db_table)
-
+            
+        #print(vars(cls))
         if hasattr(cls, '__dbs__'):
             getattr(cls, '__dbs__')[0].__tables__[cls.__tablename__] = cls
         
+            
         fields = {}
         refed_fields = {}
         has_primary_key = False
         for field_name, field in cls.__dict__.items():
             if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToMany):
+                #sys.stderr.write(str(vars(field))+"\n")
                 field.update_attr(field_name, cls.__tablename__, cls.__dbs__[0])
                 refed_fields[field_name] = field
+                
 
-            if isinstance(field, Field) or isinstance(field, Model):
+            if isinstance(field, Field):
                 field.name = field_name
                 fields[field_name] = field
                 if isinstance(field, PrimaryKey):
@@ -274,7 +290,6 @@ class MetaModel(type):
         setattr(cls, '__refed_fields__', refed_fields)
         return cls
 
-
 class Model(metaclass=MetaModel):
     """Base model"""
     __metaclass__ = MetaModel
@@ -286,7 +301,7 @@ class Model(metaclass=MetaModel):
             setattr(self, name, field)
 
         super(Model, self).__init__()
-
+        print(self.__fields__)
     @classmethod
     def get(cls, **kwargs):
         return SelectQuery(cls).where(**kwargs).first()
@@ -311,19 +326,25 @@ class Model(metaclass=MetaModel):
             if hasattr(self, field_name) and not isinstance(getattr(self, field_name), Field):
                 columns.append(field_name)
                 values.append(field_model.sql_format(getattr(self, field_name)))
-
+            
         sql = base_query.format(
             tablename=self.__tablename__,
             columns=', '.join(columns),
             items=', '.join(values)
         )
-        cursor = self.__dbs__[0].execute(sql=sql, commit=True)
-        self.id = cursor.lastrowid
-
+        for db in self.__dbs__:
+            try:
+                cursor =db.execute(sql=sql, commit=True)
+                self.id = cursor.lastrowid
+            except OperationalError as ox:
+                print("Table not found in "+db.database)
+        
         for name, field in self.__refed_fields__.items():
             if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
                 field.instance_id = self.id
 
 
-    def __str__(self):
-        return json.dumps(vars(self))
+    
+    
+    
+        

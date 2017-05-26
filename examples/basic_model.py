@@ -1,48 +1,55 @@
 """
 Simple poll app
 """
-
-from pprint import pprint
+# built-in
 from datetime import datetime
+from pprint import pprint
+from contextlib import ExitStack
+
+# 3rd party
+import matplotlib.pyplot as plt
+
+# core
 from database.drivers import Sqlite
 from database import models
-import matplotlib.pyplot as plt
+from config import DATABASES
+
+
+class User(models.Model):
+    name = Char(max_length=200)
+    
 
 class Question(models.Model):
     question_text = models.Char(max_length=200)
     pub_date = models.DateTime()
-
-    def __repr__(self):
-        return str(vars(self))
 
 class Choice(models.Model):
     question = models.ForeignKey(Question)
     choice_text = models.Char(max_length=200)
     votes = models.Integer()
 
-    def __repr__(self):
-        return str(vars(self))
 
 if __name__ == '__main__':
-    """interact with database"""
-    with Sqlite("poll.db") as db:
-        try:
-            db.create_table(Question)
-            db.create_table(Choice)
-        except Exception:
-            pass
+    with ExitStack() as stack:
+        dbs = [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
+        for db in dbs:
+            try:
+                db.create_table(Question)
+                db.create_table(Choice)
+            except:
+                db.drop_table(Question)
+                db.drop_table(Choice)
+
         # insert some data
         question = Question(question_text="What is your favorite color?", pub_date=datetime.now())
         question.save()
-        choice_1 = Choice(question=question.id, choice_text="green", votes=0)
-        choice_2 = Choice(question=question.id, choice_text="yellow", votes=0)
+        
+        choice_1 = Choice(choice_text="green", votes=0)
         choice_1.save()
-        choice_2.save()
 
-    # read from database
-    with Sqlite("poll.db") as db:
-        first_question = Question.select().where(id=1).first()
-        red_choices = Choice.select().where(choice_text="red").all()
-
+        choice_1.question.add(question)
+        
+        first_question = question.select().where(id=1).all()
+        green_choices = Choice.select().all()
         # Get results as pandas.DataFrame
-        all_choices_as_df = Choice.select().as_df()
+        all_choices_as_df = choice_1.select().as_df()
