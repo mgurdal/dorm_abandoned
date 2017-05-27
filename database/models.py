@@ -105,10 +105,8 @@ class PrimaryKey(Integer):
 
 class ForeignKey(Field):
     def __init__(self, to_table):
-        if not isinstance(to_table, str):
-            self.to_table = to_table.__tablename__
-        else:
-            self.to_table = to_table
+        self.to_table = to_table.__tablename__
+    
         super(ForeignKey, self).__init__('INTEGER')
 
     def create_sql(self):
@@ -122,7 +120,7 @@ class ForeignKey(Field):
 
     def sql_format(self, data):
         """sql query format of data"""
-        return '"{0}"'.format(str(data))   
+        return '"{0}"'.format(str(data.id))   
 
 
 class ForeignKeyReverse(object):
