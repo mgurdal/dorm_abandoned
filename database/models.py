@@ -1,5 +1,6 @@
 
 import sys
+import re
 import json
 from pprint import pprint
 
@@ -11,6 +12,11 @@ from utils.serializers import jsonify
 """
 Create Field based classes here to represent the database columns
 """
+
+# General Email Regex (RFC 5322 Official Standard)
+pattern = """(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[--!#-[]-]|\[-	-])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[--!-ZS-]|\[-	-])+)\])"""
+EMAIL_VALIDATOR = re.compile(pattern, re.X)
+
 
 class Field(object):
     """Base field object"""
@@ -67,9 +73,7 @@ class Varchar(Field):
         return '"{0}"'.format(str(data))
 
 class Email(Char):
-    # General Email Regex (RFC 5322 Official Standard)
-    result = re.match(pattern, string)
-
+    pass # verification will be added later
 
 class Text(Field):
     """SQLite Text field"""
