@@ -14,8 +14,6 @@ from database.drivers import Sqlite
 from database import models
 from config import DATABASES
 
-
-
 class Question(models.Model):
     question_text = models.Char(max_length=200)
     pub_date = models.DateTime()
@@ -24,7 +22,6 @@ class Choice(models.Model):
     question = models.ForeignKey(Question)
     choice_text = models.Char(max_length=200)
     votes = models.Integer()
-
 
 if __name__ == '__main__':
     with ExitStack() as stack:
@@ -42,10 +39,10 @@ if __name__ == '__main__':
         # insert some data
         question = Question(question_text="What is your favorite color?", pub_date=datetime.now())
         question.save()
-        
+
         choice = Choice(question=question, choice_text="green", votes=0)
         choice.save()
-        
+
         first_question = question.select().first()
         green_choices = Choice.select().all()
 

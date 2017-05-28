@@ -7,3 +7,4 @@ bckup
 *.log
 .ipynb_checkpoints
 .cache
+node_modules

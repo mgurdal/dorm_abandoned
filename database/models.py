@@ -56,7 +56,7 @@ class Char(Field):
         return '"{0}"'.format(str(data))
         
     def _serialize_data(self, data):
-        return str(data)
+        return data.decode()
         
 
 class Varchar(Field):
@@ -92,7 +92,6 @@ class DateTime(Field):
         return '"{0}"'.format(data.strftime('%Y-%m-%d %H:%M:%S'))
     
     def _serialize_data(self, data):
-        
         return str(data)    
 
 class PrimaryKey(Integer):
@@ -120,8 +119,10 @@ class ForeignKey(Field):
 
     def sql_format(self, data):
         """sql query format of data"""
-        return '"{0}"'.format(str(data.id))   
+        return '"{0}"'.format(str(data.id))  
 
+    def _serialize_data(self, data):
+        return data
 
 class ForeignKeyReverse(object):
     def __init__(self, from_table):

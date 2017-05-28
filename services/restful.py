@@ -7,6 +7,7 @@ from sanic.exceptions import NotFound
 from sanic.response import json
 from sanic.views import HTTPMethodView
 from sanic.request import Request
+from sanic_cors import CORS, cross_origin
 from multipledispatch import dispatch
 
 # framework
@@ -15,6 +16,7 @@ from database.drivers import Sqlite
 from config import DATABASES
 
 app = Sanic(name=__name__)
+CORS(app)
 
 # for all the 404 lets handle the exceptions
 @app.exception(NotFound)
