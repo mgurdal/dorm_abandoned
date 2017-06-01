@@ -38,6 +38,12 @@ with Sqlite("poll.db") as db:
     first_question = Question.select().where(id=1).first()
     red_choices = Choice.select().where(choice_text="red").all()
 
+    # Get first 5 results from all databases
+    first_5_choices = Choice.select()[:5]
+
+    # Get first 5 results from first 5 databases
+    first_5_choices_dbs = Choice.select()[:5, :5]
+
     # Get results as pandas.DataFrame
     all_choices_as_df = Choice.select().as_df()
 ```

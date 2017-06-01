@@ -11,8 +11,8 @@ from sanic_cors import CORS, cross_origin
 from multipledispatch import dispatch
 
 # framework
-from utils.serializers import ModelSerializer, SerializerMethod
-from database.drivers import Sqlite
+from dorm.utils.serializers import ModelSerializer, SerializerMethod
+from dorm.database.drivers import Sqlite
 from config import DATABASES
 
 app = Sanic(name=__name__)
@@ -68,7 +68,34 @@ def rest(methods=[], databases=[]):
                     raise NotFound(ex.args[0])
                 return generic_model
 
+            def get_objects(self, request):
+                """gets the instance of database model"""
+                try:
+                    # on database consults
+                    generic_model = cls.select()[]
+
+                except Exception as ex:
+                    raise NotFound(ex.args[0])
+                return generic_model
+
             def get(self, request, generic_id=None):
+                """Gets the model from database and serializes it."""
+                if generic_id:
+                    # on database consults
+                    generic_model = self.get_object(request, generic_id)
+
+                    return json({'method': request.method,
+                                'status': 200,
+                                'results': generic_serializer_.serialize(generic_model),
+                                })
+                else:
+                    generic_model = self.get_objects(request)
+
+                    return json({'method': request.method,
+                                'status': 200,
+                                'results': generic_serializer_.serialize(generic_model),
+                                })
+            def get_range(self, request, range=""):
                 """Gets the model from database and serializes it."""
                 if generic_id:
                     # on database consults

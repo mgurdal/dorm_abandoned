@@ -3,8 +3,8 @@ Test the fields of the database related objets here
 """
 import re
 import unittest
-from database import models
-from database.drivers import Sqlite
+from dorm.database import models
+from dorm.database.drivers import Sqlite
 
 
 

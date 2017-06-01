@@ -8,8 +8,8 @@ from pprint import pprint
 
 from sqlite3 import OperationalError
 
-from database.queries import *
-from utils.serializers import jsonify
+from .queries import *
+from dorm.utils.serializers import jsonify
 
 """
 Create Field based classes here to represent the database columns

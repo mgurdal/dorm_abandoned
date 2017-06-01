@@ -1,13 +1,16 @@
 """
 Simple poll app with RESTful service
 """
-from datetime import datetime
-from database import models
-from database.drivers import Sqlite
-from services.restful import rest, app
-from contextlib import ExitStack
-from config import DATABASES
+
 import json
+from datetime import datetime
+from contextlib import ExitStack
+
+from dorm.database import models
+from dorm.database.drivers import Sqlite
+from dorm.services.restful import rest, app
+
+from config import DATABASES
 
 @rest()
 class Question(models.Model):
@@ -26,7 +29,7 @@ class Choice(models.Model):
 if __name__ == "__main__":
     ## Multiple Database Connection & Parallel Processing
     with ExitStack() as stack:
-        dbs = [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
+        dbs = [stack.enter_context(Sqlite(db['address'])) for db in DATABASES[:400]]
         for db in dbs:
             try:
                 db.create_table(Question)

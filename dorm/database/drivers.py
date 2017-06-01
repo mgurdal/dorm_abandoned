@@ -5,7 +5,7 @@ import sqlite3
 #from pymongo import MongoClient
 import pandas as pd
 from .models import Model, ManyToMany
-from utils.serializers import ModelSerializer
+from dorm.utils.serializers import ModelSerializer
 
 class Sqlite(threading.local):
     def __init__(self, database):

@@ -10,8 +10,8 @@ from contextlib import ExitStack
 import matplotlib.pyplot as plt
 
 # core
-from database.drivers import Sqlite
-from database import models
+from dorm.database.drivers import Sqlite
+from dorm.database import models
 from config import DATABASES
 
 class Question(models.Model):
@@ -41,7 +41,13 @@ if __name__ == '__main__':
         #choice.save()
 
         #first_question = question.select().first()
-        #green_choices = Choice.select().all()
+        #all_choices = Choice.select().all()
+
+        # Get first 5 results from all databases
+        #first_5_choices = Choice.select()[:5]
+
+        # Get first 5 results from first 5 databases
+        #first_5_choices_dbs = Choice.select()[:5, :5]
 
         # Get results as pandas.DataFrame
         #all_choices_as_df = choice.select().as_df()

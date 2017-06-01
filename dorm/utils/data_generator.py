@@ -3,8 +3,8 @@ from datetime import datetime
 from contextlib import ExitStack
 
 # core
-from database.drivers import Sqlite
-from database import models
+from dorm.database.drivers import Sqlite
+from dorm.database import models
 from config import DATABASES
 
 quiz = [
@@ -403,7 +403,7 @@ class Choice(models.Model):
 
 if __name__ == '__main__':
     with ExitStack() as stack:
-        dbs = [stack.enter_context(Sqlite('datastore/poll_1001.db')) for db in DATABASES[:1]]
+        dbs = [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
         for db in dbs:
             try:
                 db.create_table(Question)
@@ -411,11 +411,12 @@ if __name__ == '__main__':
             except:
                 pass
 
-        for data in quiz_2:
+        for data in quiz:
             
-            question = Question(question_text=data["question"], pub_date=datetime.now())
+            question = Question(question_text=data["Question"], pub_date=datetime.now())
             question.save()
 
-            for answer in data["answers"]:
+            for answer in data["Answers"]:
                 choice = Choice(question=question, choice_text=answer, votes=random.randint(3, 15))
                 choice.save()
+        print()

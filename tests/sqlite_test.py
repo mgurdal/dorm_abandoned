@@ -4,8 +4,8 @@ Test the ORM queries here
 import os, sys
 import unittest
 from datetime import datetime
-from database.drivers import Sqlite
-from database import models
+from dorm.database.drivers import Sqlite
+from dorm.database import models
 
 class RelatedTestModel(models.Model):
     """Dummy class"""
@@ -52,23 +52,17 @@ class ModelTestCase(unittest.TestCase):
         """Test foreign key relation"""
 
 
-        #sys.stderr.write('create table {0} ({1});\n'.format(tablename, create_sql))
         c = self.database.execute("SELECT name FROM sqlite_master")
-        #sys.stderr.write("\n\n".join(x[0] for x in c.fetchall()))
         related_test_model = RelatedTestModel(int_field=3)
         related_test_model.save()
-        #sys.stderr.write(str(self.database.execute("select * from relatedtestmodel").fetchone()[0]))
 
         test_model = TestModel(int_field=1,
                                text_field="test",
                                datetime_field=datetime.now(),
-                               foreign_field=related_test_model.id)
+                               foreign_field=related_test_model)
         test_model.save()
 
         self.assertIs(related_test_model.select().first().int_field, 3)
-
-
-
 
     
     def test_drop_table(self):

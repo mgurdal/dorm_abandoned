@@ -4,7 +4,7 @@ from contextlib import ExitStack
 
 from database import models
 from database.drivers import Sqlite
-from config import DATABASES
+from config import DATABASES, CLUSTERS
 
 class Question(models.Model):
     question_text = models.Char(max_length=200)
@@ -14,6 +14,8 @@ class Choice(models.Model):
     question = models.ForeignKey(Question)
     choice_text = models.Char(max_length=200)
     votes = models.Integer()
+
+
 
 # assuming Question and Choice data already registered in databases    
 if __name__ == "__main__":
