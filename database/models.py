@@ -342,7 +342,7 @@ class Model(metaclass=MetaModel):
             if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
                 field.instance_id = self.id
 
-    def save(self):
+    def save(self, databases=None):
         base_query = 'insert into {tablename}({columns}) values({items});'
         columns = []
         values = []
@@ -356,7 +356,10 @@ class Model(metaclass=MetaModel):
             columns=', '.join(columns),
             items=', '.join(values)
         )
-        jobs = [gevent.spawn(self._insert, db, sql) for db in self.__dbs__]
-        print("Saving to {} databases.".format(len(self.__dbs__)))
+
+        if not databases:
+            databases = self.__dbs__
+
+        jobs = [gevent.spawn(self._insert, db, sql) for db in databases]
         result = gevent.wait(jobs)
         
