@@ -342,7 +342,7 @@ class Model(metaclass=MetaModel):
             if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
                 field.instance_id = self.id
 
-    def bulk_save(self):
+    def save(self):
         base_query = 'insert into {tablename}({columns}) values({items});'
         columns = []
         values = []
@@ -359,34 +359,4 @@ class Model(metaclass=MetaModel):
         jobs = [gevent.spawn(self._insert, db, sql) for db in self.__dbs__]
         print("Saving to {} databases.".format(len(self.__dbs__)))
         result = gevent.wait(jobs)
-        
-    def save(self):
-        base_query = 'insert into {tablename}({columns}) values({items});'
-        columns = []
-        values = []
-        for field_name, field_model in self.__fields__.items():
-            if hasattr(self, field_name) and not isinstance(getattr(self, field_name), Field):
-                columns.append(field_name)
-                values.append(field_model.sql_format(getattr(self, field_name)))
-            
-        sql = base_query.format(
-            tablename=self.__tablename__,
-            columns=', '.join(columns),
-            items=', '.join(values)
-        )
-        for db in self.__dbs__:
-            try:
-                cursor = db.execute(sql=sql, commit=True)
-                self.id = cursor.lastrowid
-            except OperationalError as ox:
-                print("Table not found in "+db.database)
-        
-        for name, field in self.__refed_fields__.items():
-            if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
-                field.instance_id = self.id
-
-
-    
-    
-    
         
