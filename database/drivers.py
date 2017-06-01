@@ -66,7 +66,7 @@ class Sqlite(threading.local):
     
             cursor = self.conn.cursor()
             #sys.stderr.write(sql+"\n\n\n") # find out
-            print(sql)
+            
             cursor.execute(sql)
             if commit:
                 self.commit()

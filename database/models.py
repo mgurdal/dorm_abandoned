@@ -2,6 +2,8 @@
 import sys
 import re
 import json
+import gevent
+
 from pprint import pprint
 
 from sqlite3 import OperationalError
@@ -141,7 +143,7 @@ class ForeignKeyReverse(object):
         self.from_model = self.db.__tables__[self.from_table]
         for k, v in self.from_model.__dict__.items():
             if isinstance(v, ForeignKey) and v.to_table == self.tablename:
-                print(k.__tablename__)
+                #print(k.__tablename__)
                 self.relate_column = k.__tablename__
 
     def all(self):
@@ -312,7 +314,7 @@ class Model(metaclass=MetaModel):
             setattr(self, name, field)
 
         super(Model, self).__init__()
-        print(self.__fields__)
+        #print(self.__fields__)
     @classmethod
     def get(cls, **kwargs):
         return SelectQuery(cls).where(**kwargs).first()
@@ -329,6 +331,35 @@ class Model(metaclass=MetaModel):
     def delete(cls, *args, **kwargs):
         return DeleteQuery(cls, *args, **kwargs)
 
+    def _insert(self, db, sql):
+        try:
+            cursor =db.execute(sql=sql, commit=True)
+            self.id = cursor.lastrowid
+        except OperationalError as ox:
+            print("Table not found in "+db.database)
+        
+        for name, field in self.__refed_fields__.items():
+            if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
+                field.instance_id = self.id
+
+    def bulk_save(self):
+        base_query = 'insert into {tablename}({columns}) values({items});'
+        columns = []
+        values = []
+        for field_name, field_model in self.__fields__.items():
+            if hasattr(self, field_name) and not isinstance(getattr(self, field_name), Field):
+                columns.append(field_name)
+                values.append(field_model.sql_format(getattr(self, field_name)))
+            
+        sql = base_query.format(
+            tablename=self.__tablename__,
+            columns=', '.join(columns),
+            items=', '.join(values)
+        )
+        jobs = [gevent.spawn(self._insert, db, sql) for db in self.__dbs__]
+        print("Saving to {} databases.".format(len(self.__dbs__)))
+        result = gevent.wait(jobs)
+        
     def save(self):
         base_query = 'insert into {tablename}({columns}) values({items});'
         columns = []
@@ -345,7 +376,7 @@ class Model(metaclass=MetaModel):
         )
         for db in self.__dbs__:
             try:
-                cursor =db.execute(sql=sql, commit=True)
+                cursor = db.execute(sql=sql, commit=True)
                 self.id = cursor.lastrowid
             except OperationalError as ox:
                 print("Table not found in "+db.database)

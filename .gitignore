@@ -8,3 +8,5 @@ bckup
 .ipynb_checkpoints
 .cache
 node_modules
+datastore/*
+examples/notebooks/AltairTutorial

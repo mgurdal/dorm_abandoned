@@ -31,20 +31,17 @@ if __name__ == '__main__':
                 db.create_table(Question)
                 db.create_table(Choice)
             except:
-                db.drop_table(Question)
-                db.drop_table(Choice)
-                db.create_table(Question)
-                db.create_table(Choice)
+                pass
 
         # insert some data
-        question = Question(question_text="What is your favorite color?", pub_date=datetime.now())
-        question.save()
+        #question = Question(question_text="What is your favorite color?", pub_date=datetime.now())
+        #question.save()
 
-        choice = Choice(question=question, choice_text="green", votes=0)
-        choice.save()
+        #choice = Choice(question=question, choice_text="green", votes=0)
+        #choice.save()
 
-        first_question = question.select().first()
-        green_choices = Choice.select().all()
+        #first_question = question.select().first()
+        #green_choices = Choice.select().all()
 
         # Get results as pandas.DataFrame
-        all_choices_as_df = choice.select().as_df()
+        #all_choices_as_df = choice.select().as_df()

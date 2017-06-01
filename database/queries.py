@@ -1,6 +1,8 @@
 """
 sql queries in here
 """
+import gevent
+
 import pandas as pd
 import dask.dataframe as dd
 
@@ -8,6 +10,15 @@ from database import models
 from config import DATABASES
 
 ENCODING_TYPE = 'utf-8'
+
+def db_job_spawner(sql, db_list, commit=True):
+    """
+    Usage:
+    result = db_job_spawner(db.execute, sql=self.sql, commit=True, db_list)
+    """
+    jobs = [gevent.spawn(db.execute, sql, commit) for db in db_list]
+    result = gevent.joinall(jobs)
+    return [job.value for job in jobs]
 
 def unicode_str(s):
     return s.encode(ENCODING_TYPE) if isinstance(s, str) else s
@@ -57,15 +68,15 @@ class SelectQuery(object):
             columns='{0}({1})'.format(func, self.query),
             tablename=self.model.__tablename__
         )
-
+        records = []
         # parallel multi db execute
         for db in self.model.__dbs__:
             
             cursor = db.execute(sql=sql, commit=True)
             record = cursor.fetchone()
             #print(type(record[0]))
-            return record[0]
-
+            records += record[0]
+        return records
     def count(self):
         return self._base_function('count')
 
@@ -125,19 +136,21 @@ class SelectQuery(object):
 
     def _execute(self, sql):
         # parallel multi db execute
+        
         cursors = [(db.execute(sql), db.database) for db in self.model.__dbs__] # for
         
         descriptor = list(i[0] for cursor in cursors for i in cursor[0].description)
-        #records = [gevent.spawn(cursor.fetchall) for cursor in cursors]
-        records = [(cursor[0].fetchall(), cursor[1]) for cursor in cursors]
-        
-        query_set = [self._make_instance(descriptor, map(unicode_str, record[0][0]), record[1]) for record in records]
+        jobs = [(gevent.spawn(cursor[0].fetchall), cursor[1]) for cursor in cursors]
+        #records = [(cursor[0].fetchall(), cursor[1]) for cursor in cursors]
+        gevent.joinall([x[0] for x in jobs])
+        records = [(job[0].value, job[1]) for job in jobs]
+        query_set = [self._make_instance(descriptor, map(unicode_str, instance), record[1]) for record in records for instance in record[0]]
         return query_set
 
     def _make_instance(self, descriptor, record, database):
         
         try:
-            #print(dict(zip(descriptor, record)))
+            
             instance = self.model(**dict(zip(descriptor, record)))
             setattr(instance, "_db", database)
         
@@ -176,7 +189,7 @@ class UpdateQuery(object):
 
     def commit(self):
         # parallel multi db execute
-        return [db.execute(sql=self.sql, commit=True) for db in self.model.__dbs__]
+        return db_job_spawner(self.sql, self.model.__dbs__, commit=True)
         
 
 
@@ -193,4 +206,4 @@ class DeleteQuery(object):
 
     def commit(self):
         # parallel multi db execute
-        return [db.execute(sql=self.sql, commit=True) for db in self.model.__dbs__]
+        return db_job_spawner(self.sql, self.model.__dbs__, commit=True)
