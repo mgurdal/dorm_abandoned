@@ -83,3 +83,8 @@ class Choice(models.Model):
 if __name__ == "__main__":
     app.run()
 ```
+
+
+## License
+
+See the [LICENSE](LICENSE.txt) file for license rights and limitations (Mozilla Public License 2.0).
