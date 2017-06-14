@@ -4,7 +4,7 @@ import sqlite3
 #import psycopg2
 #from pymongo import MongoClient
 import pandas as pd
-from .models import Model, ManyToMany
+from ..models import Model, ManyToMany
 from dorm.utils.serializers import ModelSerializer
 
 class Sqlite(threading.local):
@@ -37,7 +37,7 @@ class Sqlite(threading.local):
 
     def drop_table(self, model):
         tablename = model.__tablename__
-        self.execute('drop table {0};'.format(tablename), commit=True)
+        self.execute('drop table IF EXISTS {0};'.format(tablename), commit=True)
         #del self.__tables__[tablename]
 
         for name, field in model.__refed_fields__.items():
@@ -60,8 +60,6 @@ class Sqlite(threading.local):
         #print("Closing")
         pass
     
-
-
     def execute(self, sql, commit=False):
     
             cursor = self.conn.cursor()

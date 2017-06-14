@@ -1,9 +1,10 @@
 
 import sys
+import time
 import re
 import json
 import gevent
-
+from threading import Thread
 from pprint import pprint
 
 from sqlite3 import OperationalError
@@ -43,6 +44,17 @@ class Integer(Field):
     def _serialize_data(self, data):
         return data
 
+class Float(Field):
+    """SQLite Float field"""
+    def __init__(self):
+        super(Float, self).__init__('DOUBLE')
+
+    def sql_format(self, data):
+        """sql query format of data"""
+        return str(int(data))
+    
+    def _serialize_data(self, data):
+        return data
 
 class Char(Field):
     """SQLite Char field"""
@@ -106,15 +118,16 @@ class PrimaryKey(Integer):
 
 class ForeignKey(Field):
     def __init__(self, to_table):
-        self.to_table = to_table.__tablename__
-    
+        self.to_table = to_table
+        self.table_name = to_table.__tablename__
+        
         super(ForeignKey, self).__init__('INTEGER')
 
     def create_sql(self):
         fk_sql = '{column_name} {column_type} NOT NULL REFERENCES "{tablename}" ("{to_column}")'.format(
             column_name=self.name,
             column_type=self.column_type,
-            tablename=self.to_table,
+            tablename=self.table_name,
             to_column='id'
         )
         return fk_sql
@@ -124,7 +137,8 @@ class ForeignKey(Field):
         return '"{0}"'.format(str(data.id))  
 
     def _serialize_data(self, data):
-        return data
+        return data #vars(self.to_table.select().where(id=data.id).first())
+    
 
 class ForeignKeyReverse(object):
     def __init__(self, from_table):
@@ -315,6 +329,7 @@ class Model(metaclass=MetaModel):
 
         super(Model, self).__init__()
         #print(self.__fields__)
+        
     @classmethod
     def get(cls, **kwargs):
         return SelectQuery(cls).where(**kwargs).first()
@@ -359,7 +374,4 @@ class Model(metaclass=MetaModel):
 
         if not databases:
             databases = self.__dbs__
-
-        jobs = [gevent.spawn(self._insert, db, sql) for db in databases]
-        result = gevent.wait(jobs)
-        
+        [self._insert(db, sql) for db in databases]

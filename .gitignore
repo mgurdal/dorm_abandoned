@@ -10,3 +10,4 @@ bckup
 node_modules
 datastore/*
 examples/notebooks/AltairTutorial
+env

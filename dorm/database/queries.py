@@ -173,6 +173,7 @@ class SelectQuery(object):
         try:
             
             instance = self.model(**dict(zip(descriptor, record)))
+            
             setattr(instance, "_db", database)
         
         except TypeError:

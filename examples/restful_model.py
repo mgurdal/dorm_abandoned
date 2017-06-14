@@ -7,7 +7,7 @@ from datetime import datetime
 from contextlib import ExitStack
 
 from dorm.database import models
-from dorm.database.drivers import Sqlite
+from dorm.database.drivers.sqlite import Sqlite
 from dorm.services.restful import rest, app
 
 from config import DATABASES
