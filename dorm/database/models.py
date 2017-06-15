@@ -67,7 +67,7 @@ class Char(Field):
 
     def sql_format(self, data):
         """sql query format of data"""
-        return '"{0}"'.format(str(data))
+        return "'{0}'".format(str(data))
         
     def _serialize_data(self, data):
         return data.decode()
@@ -84,7 +84,7 @@ class Varchar(Field):
 
     def sql_format(self, data):
         """sql query format of data"""
-        return '"{0}"'.format(str(data))
+        return "'{0}'".format(str(data))
 
 class Email(Char):
     pass # verification will be added later
@@ -96,14 +96,15 @@ class Text(Field):
 
     def sql_format(self, data):
         """sql query format of data"""
-        return '"{0}"'.format(str(data))
+        return "'{0}'".format(str(data))
 
 class DateTime(Field):
     def __init__(self):
-        super(DateTime, self).__init__('DATETIME')
+        super(DateTime, self).__init__('TIMESTAMP')
 
     def sql_format(self, data):
-        return '"{0}"'.format(data.strftime('%Y-%m-%d %H:%M:%S'))
+         
+        return "'{0}'".format(data.strftime('%Y-%m-%d %H:%M:%S'))
     
     def _serialize_data(self, data):
         return str(data)    
@@ -113,7 +114,7 @@ class PrimaryKey(Integer):
         super(PrimaryKey, self).__init__()
 
     def create_sql(self):
-        return '"{0}" {1} NOT NULL PRIMARY KEY'.format(self.name, self.column_type)
+        return '"{0}" {1} NOT NULL SERIAL PRIMARY KEY A'.format(self.name, self.column_type)
     
 
 class ForeignKey(Field):
@@ -134,7 +135,7 @@ class ForeignKey(Field):
 
     def sql_format(self, data):
         """sql query format of data"""
-        return '"{0}"'.format(str(data.id))  
+        return "'{0}'".format(str(data.id))  
 
     def _serialize_data(self, data):
         return data #vars(self.to_table.select().where(id=data.id).first())
@@ -362,10 +363,11 @@ class Model(metaclass=MetaModel):
         columns = []
         values = []
         for field_name, field_model in self.__fields__.items():
-            if hasattr(self, field_name) and not isinstance(getattr(self, field_name), Field):
-                columns.append(field_name)
-                values.append(field_model.sql_format(getattr(self, field_name)))
             
+            if hasattr(self, field_name) and not isinstance(getattr(self, field_name), Field):
+                values.append(field_model.sql_format(getattr(self, field_name)))
+                columns.append(field_name)
+              
         sql = base_query.format(
             tablename=self.__tablename__,
             columns=', '.join(columns),

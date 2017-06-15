@@ -1,8 +1,8 @@
 import os
 import unittest
 from datetime import datetime
-from database.drivers import Sqlite
-from database import models
+from dorm.database.drivers.sqlite import Sqlite
+from dorm.database import models
 
 class QueryTestCase(unittest.TestCase):
     """

@@ -4,7 +4,7 @@ Test the fields of the database related objets here
 import re
 import unittest
 from dorm.database import models
-from dorm.database.drivers import Sqlite
+from dorm.database.drivers.sqlite import Sqlite
 
 
 

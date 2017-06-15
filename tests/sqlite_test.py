@@ -4,7 +4,7 @@ Test the ORM queries here
 import os, sys
 import unittest
 from datetime import datetime
-from dorm.database.drivers import Sqlite
+from dorm.database.drivers.sqlite import Sqlite
 from dorm.database import models
 
 class RelatedTestModel(models.Model):

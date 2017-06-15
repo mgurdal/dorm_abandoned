@@ -17,3 +17,7 @@ DATABASES = [
     {'address': 'datastore/poll_9.db', 'name': 'poll9', 'port': None},
     {'address': 'datastore/poll_10.db', 'name': 'poll10', 'port': None}
 ]
+
+POSTGRES_DATABASES = [
+    {'database': 'dorm_test_db', 'user': 'sky', 'password':'yourpassword', 'port': 5432},
+    ]

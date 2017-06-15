@@ -10,9 +10,9 @@ from contextlib import ExitStack
 import matplotlib.pyplot as plt
 
 # core
-from dorm.database.drivers import Sqlite
+from dorm.database.drivers.postgres import Postgres
 from dorm.database import models
-from config import DATABASES
+from config import POSTGRES_DATABASES
 
 class Question(models.Model):
     question_text = models.Char(max_length=200)
@@ -25,23 +25,28 @@ class Choice(models.Model):
 
 if __name__ == '__main__':
     with ExitStack() as stack:
-        dbs = [stack.enter_context(Sqlite(db['address'])) for db in DATABASES]
+        dbs = [stack.enter_context(Postgres(**db)) for db in POSTGRES_DATABASES]
         for db in dbs:
             try:
+                try:
+                    db.drop_table(Question)
+                    db.drop_table(Choice)
+                except:
+                    pass
                 db.create_table(Question)
                 db.create_table(Choice)
-            except:
-                pass
+            except Exception as e:
+                continue
 
         # insert some data
-        #question = Question(question_text="What is your favorite color?", pub_date=datetime.now())
-        #question.save()
+        question = Question(question_text="What is your favorite color?", pub_date=datetime.now())
+        question.save()
 
-        #choice = Choice(question=question, choice_text="green", votes=0)
-        #choice.save()
+        choice = Choice(question=question, choice_text="green", votes=0)
+        choice.save()
 
-        #first_question = question.select().first()
-        #all_choices = Choice.select().all()
+        first_question = question.select().first()
+        all_choices = Choice.select().all()
 
         # Get first 5 results from all databases
         #first_5_choices = Choice.select()[:5]
