@@ -7,7 +7,6 @@ import pandas as pd
 import dask.dataframe as dd
 
 from . import models
-from config import DATABASES
 
 ENCODING_TYPE = 'utf-8'
 
@@ -51,7 +50,7 @@ class SelectQuery(object):
 
     def first(self):
         self.base_sql = '{0} limit 1;'.format(self.base_sql.rstrip(';'))
-        return self._execute(self.sql)[0]
+        return next(self._execute(self.sql))
 
     def where(self, *args, **kwargs):
         where_list = []
@@ -165,7 +164,7 @@ class SelectQuery(object):
         jobs = [(gevent.spawn(cursor[0].fetchall), cursor[1]) for cursor in cursors]
         gevent.joinall([x[0] for x in jobs])
         records = [(job[0].value, job[1]) for job in jobs]
-        query_set = [self._make_instance(descriptor, map(unicode_str, instance), record[1]) for record in records for instance in record[0]]
+        query_set = (self._make_instance(descriptor, map(unicode_str, instance), record[1]) for record in records for instance in record[0])
         return query_set
 
     def _make_instance(self, descriptor, record, database):

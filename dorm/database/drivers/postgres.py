@@ -3,10 +3,9 @@ from .base import BaseDriver
 
 class Postgres(BaseDriver):
     """Postgres Driver"""
-    def __init__(self, **kwargs):
-        print(kwargs)
+    def __init__(self, conf):
         super(Postgres, self).__init__(adapter=psycopg2,
-                                       database=kwargs['database'],
-                                       user=kwargs['user'],
-                                       password=kwargs['password'],
-                                       port=kwargs['port'])
+                                       database=conf['database'],
+                                       user=conf['user'],
+                                       password=conf['password'],
+                                       port=conf['port'])

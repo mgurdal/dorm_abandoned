@@ -13,7 +13,7 @@ from multipledispatch import dispatch
 # framework
 from dorm.utils.serializers import ModelSerializer, SerializerMethod
 from dorm.database.drivers.sqlite import Sqlite
-from config import DATABASES
+
 
 app = Sanic(name=__name__)
 CORS(app)
@@ -62,7 +62,7 @@ def rest(methods=[], databases=[]):
                 """gets the instance of database model"""
                 try:
                     # on database consults
-                    generic_model = cls.select().all()
+                    generic_model = list(cls.select().all())
 
                 except Exception as ex:
                     raise NotFound(ex.args[0])

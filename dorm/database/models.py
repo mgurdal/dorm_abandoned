@@ -114,7 +114,7 @@ class PrimaryKey(Integer):
         super(PrimaryKey, self).__init__()
 
     def create_sql(self):
-        return '"{0}" {1} NOT NULL SERIAL PRIMARY KEY A'.format(self.name, self.column_type)
+        return '"{0}" {1} NOT NULL PRIMARY KEY'.format(self.name, self.column_type)
     
 
 class ForeignKey(Field):
@@ -349,11 +349,13 @@ class Model(metaclass=MetaModel):
 
     def _insert(self, db, sql):
         try:
-            cursor =db.execute(sql=sql, commit=True)
+            cursor = db.execute(sql=sql)
             self.id = cursor.lastrowid
         except OperationalError as ox:
             print("Table not found in "+db.database)
-        
+        finally:
+            db.commit()
+
         for name, field in self.__refed_fields__.items():
             if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
                 field.instance_id = self.id
@@ -376,4 +378,5 @@ class Model(metaclass=MetaModel):
 
         if not databases:
             databases = self.__dbs__
+        print([x.database for x in databases])
         [self._insert(db, sql) for db in databases]

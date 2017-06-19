@@ -11,8 +11,9 @@ import matplotlib.pyplot as plt
 
 # core
 from dorm.database.drivers.postgres import Postgres
+from dorm.database.drivers.sqlite import Sqlite
 from dorm.database import models
-from config import POSTGRES_DATABASES
+from config import POSTGRES_DATABASES, SQLITE_DATABASES
 
 class Question(models.Model):
     question_text = models.Char(max_length=200)
@@ -25,7 +26,8 @@ class Choice(models.Model):
 
 if __name__ == '__main__':
     with ExitStack() as stack:
-        dbs = [stack.enter_context(Postgres(**db)) for db in POSTGRES_DATABASES]
+        #dbs = [stack.enter_context(Postgres(**db)) for db in POSTGRES_DATABASES]
+        dbs = [stack.enter_context(Sqlite(db)) for db in SQLITE_DATABASES]
         for db in dbs:
             try:
                 try:

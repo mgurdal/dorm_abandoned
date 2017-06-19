@@ -1,11 +1,13 @@
-import threading
+""" doc """
+
 from ..models import Model, ManyToMany
 from dorm.utils.serializers import ModelSerializer
-import sys
-class BaseDriver():
-    def __init__(self, adapter=None, database=None, **kwargs):
+
+
+class BaseDriver(object):
+    def __init__(self, adapter=None, **kwargs):
         super(BaseDriver, self).__init__()
-        self.database = database
+        self.database = kwargs['database_name']
         self.conn = adapter.connect(**kwargs)
 
         self.__tables__ = {}

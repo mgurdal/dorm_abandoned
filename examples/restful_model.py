@@ -10,7 +10,7 @@ from dorm.database import models
 from dorm.database.drivers.sqlite import Sqlite
 from dorm.services.restful import rest, app
 
-from config import DATABASES
+from config import SQLITE_DATABASES
 
 @rest()
 class Question(models.Model):
@@ -29,7 +29,7 @@ class Choice(models.Model):
 if __name__ == "__main__":
     ## Multiple Database Connection & Parallel Processing
     with ExitStack() as stack:
-        dbs = [stack.enter_context(Sqlite(db['address'])) for db in DATABASES[:400]]
+        dbs = [stack.enter_context(Sqlite(db)) for db in SQLITE_DATABASES]
         for db in dbs:
             try:
                 db.create_table(Question)
