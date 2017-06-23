@@ -17,25 +17,29 @@ from dorm.main import DORM
 import config
 
 class Question(models.Model):
+    id = models.PrimaryKey()
     question_text = models.Char(max_length=200)
     pub_date = models.DateTime()
 
 class Choice(models.Model):
+    id = models.PrimaryKey()
     question = models.ForeignKey(Question)
     choice_text = models.Char(max_length=200)
     votes = models.Integer()
 
 if __name__ == '__main__':
     dorm = DORM(config)
+    dorm.register_model(Choice, Question)
     dorm.discover()
+
     def add_some():
-        question = Question(question_text="What is your favorite color?", pub_date=datetime.now())
+        question = Question(id = 500, question_text="What is your favorite color?", pub_date=datetime.now())
         question.save()
-        choice = Choice(question=question, choice_text="green", votes=0)
+        choice = Choice(id = 600, question=question, choice_text="green", votes=0)
         choice.save()
 
-    first_question = Question.select().first()
-    all_choices = Choice.select().all()
+    first_question = Question.select()[:1, 11:12]
+    all_choices = Choice.select()[:1, :1]
 
         # Get first 5 results from all databases
         #first_5_choices = Choice.select()[:5]

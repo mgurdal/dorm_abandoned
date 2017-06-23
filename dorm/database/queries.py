@@ -153,9 +153,10 @@ class SelectQuery(object):
         return df
 
     def _execute(self, sql):
+    
         # parallel multi db execution
         cursors = [(db.execute(sql), db.database) for db in self.databases] # for
-
+        print([db.database for db in self.databases])
         descriptor = list(i[0] for cursor in cursors for i in cursor[0].description)
         jobs = [(gevent.spawn(cursor[0].fetchall), cursor[1]) for cursor in cursors]
         gevent.joinall([x[0] for x in jobs])
@@ -174,7 +175,7 @@ class SelectQuery(object):
 
         for _, field in instance.__refed_fields__.items():
             if isinstance(field, models.ForeignKeyReverse) or isinstance(field, models.ManyToManyBase):
-                field.instance_id = vars(instance)['id']
+                field.instance_id = vars(instance)['id'] # make nested query
         return instance
 
 class UpdateQuery(object):

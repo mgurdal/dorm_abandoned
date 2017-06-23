@@ -22,10 +22,10 @@ class BaseDriver(object):
         # Bug in here, foreign key does not work properly
         create_sql = ', '.join(field.create_sql() for field in model.__fields__.values())
         try:
-            self.execute('create table {0} ({1});'.format(tablename, create_sql), commit=True)
+            self.execute('create table if not exists {0} ({1});'.format(tablename, create_sql), commit=True)
         except Exception as e:
-
             print(e, create_sql)
+
         if tablename not in self.__tables__.keys():
             self.__tables__[tablename] = model
 

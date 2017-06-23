@@ -17,24 +17,24 @@ DATABASES = {
         {'database_name': 'datastore/poll_8.db'},
         {'database_name': 'datastore/poll_9.db'},
         {'database_name': 'datastore/poll_10.db'}
+    ],
+    'postgres': [
+        {'database_name': 'test',
+         'user': 'postgres',
+         'password':'mysecretpassword',
+         'host':'127.0.0.1',
+         'port': 5432
+        },
+    ],
+    'mysql': [
+        {'database_name': 'employees',
+         'user': 'root',
+         'password':'mysecretpassword',
+         'host':'127.0.0.1',
+         'port': 3306
+        },
     ]
 }
 
-
-POSTGRES_DATABASES = [
-    {'database_name': 'test',
-     'user': 'postgres',
-     'password':'mysecretpassword',
-     'host':'127.0.0.1',
-     'port': 5432
-    },
-]
-
-MYSQL_DATABASES = [
-    {'database_name': 'employees',
-     'user': 'root',
-     'password':'mysecretpassword',
-     'host':'127.0.0.1',
-     'port': 3306
-    },
-]
+# sudo docker run --name dorm_test_mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=mysecretpassword -d mysql
+# sudo docker run --name dorm_postgres -p 5432:5432  -e  POSTGRES_PASSWORD=mysecretpassword -d postgres
