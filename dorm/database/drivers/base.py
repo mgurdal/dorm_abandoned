@@ -5,10 +5,9 @@ from dorm.utils.serializers import ModelSerializer
 
 
 class BaseDriver(object):
-    def __init__(self, adapter=None, **kwargs):
+    def __init__(self, conn):
         super(BaseDriver, self).__init__()
-        self.database = kwargs['database_name']
-        self.conn = adapter.connect(**kwargs)
+        self.conn = conn
 
         self.__tables__ = {}
         setattr(self, 'Model', Model)
@@ -63,11 +62,11 @@ class BaseDriver(object):
         cursor = self.conn.cursor()
         
         try:
-            print(sql)
-            cursor.execute("rollback;"+sql)
-            print("success")
+            
+            cursor.execute(sql)
             if commit:
                 self.commit()
+            print(sql)
             return cursor
         except Exception as e:
             raise e

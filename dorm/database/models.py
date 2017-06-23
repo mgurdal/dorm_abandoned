@@ -1,12 +1,7 @@
 
 import sys
 import time
-import re
 import json
-import gevent
-from threading import Thread
-from pprint import pprint
-
 from sqlite3 import OperationalError
 
 from .queries import *
@@ -15,11 +10,6 @@ from dorm.utils.serializers import jsonify
 """
 Create Field based classes here to represent the database columns
 """
-
-# General Email Regex (RFC 5322 Official Standard)
-pattern = """(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*|"(?:[--!#-[]-]|\[-	-])*")@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[--!-ZS-]|\[-	-])+)\])"""
-EMAIL_VALIDATOR = re.compile(pattern, re.X)
-
 
 class Field(object):
     """Base field object"""
@@ -30,7 +20,6 @@ class Field(object):
     def create_sql(self):
         """Return sql statement for create table."""
         return '"{0}" {1}'.format(self.name, self.column_type)
-
 
 class Integer(Field):
     """SQLite Integer field"""
@@ -71,7 +60,6 @@ class Char(Field):
         
     def _serialize_data(self, data):
         return data.decode()
-        
 
 class Varchar(Field):
     """SQLite Varchar field"""
@@ -103,7 +91,6 @@ class DateTime(Field):
         super(DateTime, self).__init__('TIMESTAMP')
 
     def sql_format(self, data):
-         
         return "'{0}'".format(data.strftime('%Y-%m-%d %H:%M:%S'))
     
     def _serialize_data(self, data):
@@ -115,7 +102,6 @@ class PrimaryKey(Integer):
 
     def create_sql(self):
         return '"{0}" {1} NOT NULL PRIMARY KEY'.format(self.name, self.column_type)
-    
 
 class ForeignKey(Field):
     def __init__(self, to_table):
@@ -138,9 +124,8 @@ class ForeignKey(Field):
         return "'{0}'".format(str(data.id))  
 
     def _serialize_data(self, data):
-        return data #vars(self.to_table.select().where(id=data.id).first())
+        return data
     
-
 class ForeignKeyReverse(object):
     def __init__(self, from_table):
         self.from_table = from_table
@@ -158,7 +143,6 @@ class ForeignKeyReverse(object):
         self.from_model = self.db.__tables__[self.from_table]
         for k, v in self.from_model.__dict__.items():
             if isinstance(v, ForeignKey) and v.to_table == self.tablename:
-                #print(k.__tablename__)
                 self.relate_column = k.__tablename__
 
     def all(self):
@@ -170,17 +154,13 @@ class ForeignKeyReverse(object):
     def _query_sql(self):
         return self.from_model.select().where(**{self.relate_column: self.instance_id})
 
-
 class ManyToManyBase(object):
     def __init__(self, to_model):
         self.to_model = to_model
-
         self.name = None
         self.tablename = None
         self.db = None
-
         self.instance_id = None
-
         self.relate_model = None
         self.relate_table = None
         self.relate_column = None
@@ -216,7 +196,6 @@ class ManyToManyBase(object):
         where_sql = 'id in ({0})'.format(', '.join(to_ids))
 
         return self.to_model.select().where(where_sql)
-
 
 class ManyToMany(ManyToManyBase):
     def __init__(self, to_model):
@@ -271,7 +250,6 @@ class ManyToMany(ManyToManyBase):
         delattr(self.to_model, to_column)
         del self.to_model.__refed_fields__[to_column]
 
-
 class MetaModel(type):
     """
         Metamodel that initializes the database table model as creation of model class
@@ -287,11 +265,9 @@ class MetaModel(type):
         else:
             setattr(cls, '__tablename__', attrs['Meta'].db_table)
             
-        #print(vars(cls))
         if hasattr(cls, '__dbs__'):
             getattr(cls, '__dbs__')[0].__tables__[cls.__tablename__] = cls
         
-            
         fields = {}
         refed_fields = {}
         has_primary_key = False
@@ -301,13 +277,11 @@ class MetaModel(type):
                 field.update_attr(field_name, cls.__tablename__, cls.__dbs__[0])
                 refed_fields[field_name] = field
                 
-
             if isinstance(field, Field):
                 field.name = field_name
                 fields[field_name] = field
                 if isinstance(field, PrimaryKey):
                     has_primary_key = True
-                
         # todo
         if not has_primary_key:
             pk = PrimaryKey()
@@ -329,7 +303,6 @@ class Model(metaclass=MetaModel):
             setattr(self, name, field)
 
         super(Model, self).__init__()
-        #print(self.__fields__)
         
     @classmethod
     def get(cls, **kwargs):
@@ -346,6 +319,12 @@ class Model(metaclass=MetaModel):
     @classmethod
     def delete(cls, *args, **kwargs):
         return DeleteQuery(cls, *args, **kwargs)
+
+    def __str__(self):
+        return str(vars(self))
+    
+    def __repr__(self):
+        return str(vars(self))
 
     def _insert(self, db, sql):
         try:
@@ -364,8 +343,8 @@ class Model(metaclass=MetaModel):
         base_query = 'insert into {tablename}({columns}) values({items});'
         columns = []
         values = []
-        for field_name, field_model in self.__fields__.items():
-            
+
+        for field_name, field_model in self.__fields__.items():    
             if hasattr(self, field_name) and not isinstance(getattr(self, field_name), Field):
                 values.append(field_model.sql_format(getattr(self, field_name)))
                 columns.append(field_name)
@@ -378,5 +357,6 @@ class Model(metaclass=MetaModel):
 
         if not databases:
             databases = self.__dbs__
-        print([x.database for x in databases])
-        [self._insert(db, sql) for db in databases]
+        
+        for db in databases:
+            self._insert(db, sql)

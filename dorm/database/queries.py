@@ -2,7 +2,6 @@
 sql queries in here
 """
 import gevent
-
 import pandas as pd
 import dask.dataframe as dd
 
@@ -61,7 +60,6 @@ class SelectQuery(object):
         self.base_sql = '{0} where {1};'.format(self.base_sql.rstrip(';'), ' and '.join(where_list))
         return self
 
-
     def _base_function(self, func):
         sql = self.base_sql.format(
             columns='{0}({1})'.format(func, self.query),
@@ -70,36 +68,36 @@ class SelectQuery(object):
         records = []
         # parallel multi db execute
         for db in self.databases:
-            
             cursor = db.execute(sql=sql, commit=True)
             record = cursor.fetchone()
             #print(type(record[0]))
             records += record[0]
         return records
-    
+
     def __getitem__(self, slices):
         """
         Usage:
         #Select N items from all databases
         Question.select()('content')[start:end]
-        
+
         #Select N items from N databases
         Question.select()[start:end, start:end]
         """
+
         if isinstance(slices, tuple) and all(map(lambda s: isinstance(s, slice), slices)):
             self.databases = self.databases[slices[1]]
-            start, end = slices[0].start, slices[0].stop
+            first_slice, second_slice = slices[0].start, slices[0].stop
         elif isinstance(slices, slice):
             start, end = slices.start, slices.stop
         else:
             raise SyntaxError("Invalid slice object")
 
-        if not start: start = 1
-        if not end: end = -1    
+        start = first_slice if first_slice else 1
+        end = second_slice if second_slice else -1
+
         self.base_sql = '{0} limit {1} offset {2};'.format(self.base_sql.rstrip(';'), end, start-1)
         return self.all()
             
-
     def count(self):
         return self._base_function('count')
 
@@ -135,7 +133,6 @@ class SelectQuery(object):
         self.base_sql = '{0} like "{1}";'.format(self.base_sql.rstrip(';'), pattern)
         return self
 
-
     def as_df(self):
         """Turns sql query result into pandas dataframe"""
         df = pd.read_sql(self.sql, self.databases[0].conn)
@@ -145,7 +142,7 @@ class SelectQuery(object):
             new_piece = pd.read_sql(self.sql, new_frame.conn)
             new_piece['database'] = new_frame.database
             df = df.append(new_piece, ignore_index=True)
-            
+
         df.set_index(df['id'])
         del df['id']
         return df
@@ -156,33 +153,29 @@ class SelectQuery(object):
         return df
 
     def _execute(self, sql):
-        # parallel multi db execute
-        
+        # parallel multi db execution
         cursors = [(db.execute(sql), db.database) for db in self.databases] # for
-        
+
         descriptor = list(i[0] for cursor in cursors for i in cursor[0].description)
         jobs = [(gevent.spawn(cursor[0].fetchall), cursor[1]) for cursor in cursors]
         gevent.joinall([x[0] for x in jobs])
         records = [(job[0].value, job[1]) for job in jobs]
-        query_set = (self._make_instance(descriptor, map(unicode_str, instance), record[1]) for record in records for instance in record[0])
+        query_set = (self._make_instance(descriptor, map(unicode_str, instance), record[1])
+                     for record in records for instance in record[0])
         return query_set
 
     def _make_instance(self, descriptor, record, database):
-        
+
         try:
-            
             instance = self.model(**dict(zip(descriptor, record)))
-            
-            setattr(instance, "_db", database)
-        
+            setattr(instance, "origin", database)
         except TypeError:
             return None
 
-        for name, field in instance.__refed_fields__.items():
+        for _, field in instance.__refed_fields__.items():
             if isinstance(field, models.ForeignKeyReverse) or isinstance(field, models.ManyToManyBase):
                 field.instance_id = vars(instance)['id']
         return instance
-
 
 class UpdateQuery(object):
     def __init__(self, model, *args, **kwargs):
@@ -194,7 +187,9 @@ class UpdateQuery(object):
             self.where_list.append('{0}="{1}"'.format(k, v))
 
         if self.where_list:
-            self.base_sql = '{0} where {1}'.format(self.base_sql.rstrip(';'), ' and '.join(self.where_list))
+            self.base_sql = '{0} where {1}'.format(self.base_sql.rstrip(';'),
+                                                   ' and '.join(self.where_list)
+                                                  )
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
@@ -211,8 +206,6 @@ class UpdateQuery(object):
     def commit(self):
         # parallel multi db execute
         return db_job_spawner(self.sql, self.databases, commit=True)
-        
-
 
 class DeleteQuery(object):
     def __init__(self, model, *args, **kwargs):

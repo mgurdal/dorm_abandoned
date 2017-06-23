@@ -2,21 +2,23 @@
 
 import sqlite3
 import threading
+from pprint import pprint
 #from .base import BaseDriver
 from ..models import Model
 
 class Sqlite(threading.local):
     def __init__(self, conf):
         self.database = conf['database_name']
-        self.conn = sqlite3.connect(database=self.database, detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)
+        self.conn = sqlite3.connect(database=self.database,
+                                    detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+                                   )
 
         self.__tables__ = {}
         setattr(self, 'Model', Model)
         if not hasattr(self.Model, "__dbs__"):
             setattr(self.Model, '__dbs__', [])
-        
+
         self.Model.__dbs__.append(self)
-            #print(self.database)
 
     def create_table(self, model):
         tablename = model.__tablename__
@@ -37,7 +39,7 @@ class Sqlite(threading.local):
     def drop_table(self, model):
         tablename = model.__tablename__
         self.execute('drop table IF EXISTS {0};'.format(tablename), commit=True)
-        #del self.__tables__[tablename]
+        #del self.models.__tables__[tablename]
 
         for name, field in model.__refed_fields__.items():
             if isinstance(field, ManyToMany):
@@ -51,27 +53,27 @@ class Sqlite(threading.local):
 
     def close(self):
         self.conn.close()
-        
+
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
-        #print("Closing")
         pass
-    
+
     def execute(self, sql, commit=False):
         cursor = self.conn.cursor()
-        
+
         try:
-            #print(sql)
-            cursor.execute(sql.replace('\"', ''))
-            print("success")
+            pprint(sql)
+            cursor.execute(sql)
+
             if commit:
                 self.commit()
+            pprint(sql)
             return cursor
         except Exception as e:
             raise e
-#BaseDriver
+
 class SqliteNotDoneYet(object):
     """SQLite Driver"""
     def __init__(self, conf):
