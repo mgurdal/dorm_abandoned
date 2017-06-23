@@ -4,7 +4,7 @@ import sqlite3
 import threading
 from pprint import pprint
 #from .base import BaseDriver
-from ..models import Model
+from ..models import Model, ManyToMany
 
 class Sqlite(threading.local):
     def __init__(self, conf):
@@ -27,8 +27,8 @@ class Sqlite(threading.local):
         try:
             self.execute('create table {0} ({1});'.format(tablename, create_sql), commit=True)
         except Exception as e:
-
             print(e, create_sql)
+
         if tablename not in self.__tables__.keys():
             self.__tables__[tablename] = model
 

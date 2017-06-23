@@ -44,12 +44,12 @@ class SelectQuery(object):
             tablename=self.model.__tablename__
         )
 
-    def all(self):
-        return self._execute(self.sql)
+    def all(self, datatype=None):
+        return self._execute(self.sql, datatype=datatype)
 
-    def first(self):
+    def first(self, datatype=None):
         self.base_sql = '{0} limit 1;'.format(self.base_sql.rstrip(';'))
-        return next(self._execute(self.sql))
+        return next(self._execute(self.sql, datatype=datatype))
 
     def where(self, *args, **kwargs):
         where_list = []
@@ -88,7 +88,7 @@ class SelectQuery(object):
             self.databases = self.databases[slices[1]]
             first_slice, second_slice = slices[0].start, slices[0].stop
         elif isinstance(slices, slice):
-            start, end = slices.start, slices.stop
+            first_slice, second_slice = slices.start, slices.stop
         else:
             raise SyntaxError("Invalid slice object")
 
@@ -152,18 +152,22 @@ class SelectQuery(object):
         df = dd.from_pandas(self.as_df(), npartitions=5)
         return df
 
-    def _execute(self, sql):
+    def _execute(self, sql, datatype=None):
     
         # parallel multi db execution
         cursors = [(db.execute(sql), db.database) for db in self.databases] # for
-        print([db.database for db in self.databases])
+        #print([db.database for db in self.databases])
         descriptor = list(i[0] for cursor in cursors for i in cursor[0].description)
         jobs = [(gevent.spawn(cursor[0].fetchall), cursor[1]) for cursor in cursors]
         gevent.joinall([x[0] for x in jobs])
         records = [(job[0].value, job[1]) for job in jobs]
-        query_set = (self._make_instance(descriptor, map(unicode_str, instance), record[1])
-                     for record in records for instance in record[0])
-        return query_set
+
+        query_set = ((descriptor, instance, record[1]) for record in records for instance in record[0])
+        
+        if not datatype:
+            return (self._make_instance(*x) for x in query_set)
+        elif datatype == 'dict':
+            return (dict(zip(descriptor, record), origin=database) for discriptor, record, database in query_set)
 
     def _make_instance(self, descriptor, record, database):
 
@@ -175,7 +179,7 @@ class SelectQuery(object):
 
         for _, field in instance.__refed_fields__.items():
             if isinstance(field, models.ForeignKeyReverse) or isinstance(field, models.ManyToManyBase):
-                field.instance_id = vars(instance)['id'] # make nested query
+                field.instance_id = vars(instance)['id'] # implement  nested query
         return instance
 
 class UpdateQuery(object):

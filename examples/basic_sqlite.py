@@ -27,9 +27,18 @@ class Choice(models.Model):
     choice_text = models.Char(max_length=200)
     votes = models.Integer()
 
+"""
+class Employees(models.Model):
+    emp_no = models.PrimaryKey()
+    birth_date = models.DateTime()
+    first_name = models.Char(14)
+    last_name = models.Char(16)
+    gender = models.Char(1)
+    hire_date = models.DateTime()
+"""
+
 if __name__ == '__main__':
     dorm = DORM(config)
-    dorm.register_model(Choice, Question)
     dorm.discover()
 
     def add_some():
@@ -38,14 +47,12 @@ if __name__ == '__main__':
         choice = Choice(id = 600, question=question, choice_text="green", votes=0)
         choice.save()
 
-    first_question = Question.select()[:1, 11:12]
-    all_choices = Choice.select()[:1, :1]
+    first_question = Question.select().first()
 
-        # Get first 5 results from all databases
-        #first_5_choices = Choice.select()[:5]
+    all_choices = Choice.select().all()
 
-        # Get first 5 results from first 5 databases
-        #first_5_choices_dbs = Choice.select()[:5, :5]
+    # Get first 5 results from all databases
+    first_5_choices = Choice.select()[:5]
 
-        # Get results as pandas.DataFrame
-        #all_choices_as_df = choice.select().as_df()
+    # Get first 5 results from first 5 databases
+    first_5_choices_of_first_5_dbs = Choice.select()[:5, :5]

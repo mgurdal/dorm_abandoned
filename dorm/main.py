@@ -2,11 +2,7 @@
     DORM Management app
 """
 
-
-
 from contextlib import ExitStack
-
- # sudo docker run --name postgres -e POSTGRES_PASSWORD=mysecretpassword -d postgres
 
 class DORM(object):
     """ DORM Management app """

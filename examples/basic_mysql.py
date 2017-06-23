@@ -6,13 +6,7 @@ from dorm.database.drivers.mysql import Mysql
 from dorm.database import models
 from config import MYSQL_DATABASES
 
-class Employees(models.Model):
-    emp_no = models.PrimaryKey()
-    birth_date = models.DateTime()
-    first_name = models.Char(14)
-    last_name = models.Char(16)
-    gender = models.Char(1)
-    hire_date = models.DateTime()
+
 
 if __name__ == "__main__":
     md = Mysql(MYSQL_DATABASES[0])
