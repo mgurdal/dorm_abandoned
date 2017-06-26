@@ -210,7 +210,7 @@ class UpdateQuery(object):
 
     def commit(self):
         # parallel multi db execute
-        return db_job_spawner(self.sql, self.databases, commit=True)
+        return db_job_spawner(self.sql, self.model.__dbs__, commit=True)
 
 class DeleteQuery(object):
     def __init__(self, model, *args, **kwargs):

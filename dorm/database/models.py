@@ -88,13 +88,29 @@ class Text(Field):
 
 class DateTime(Field):
     def __init__(self):
-        super(DateTime, self).__init__('TIMESTAMP')
+        super(DateTime, self).__init__('DATETIME')
 
     def sql_format(self, data):
-        return "'{0}'".format(data.strftime('%Y-%m-%d %H:%M:%S'))
+        return "'{0}'".format(self.to_string())
     
     def _serialize_data(self, data):
-        return str(data)    
+        return str(data)
+    def to_string(self, data, format='%Y-%m-%d %H:%M:%S'):
+        return data.strftime(format)
+
+class Timestamp(Field):
+    def __init__(self):
+        super(Timestamp, self).__init__('TIMESTAMP')
+
+    def sql_format(self, data):
+        return "'{0}'".format(self.to_string())
+    
+    def _serialize_data(self, data):
+        return str(data)
+
+    def to_string(self, data, format='%Y-%m-%d %H:%M:%S'):
+        return data.strftime(format)
+
 
 class PrimaryKey(Integer):
     def __init__(self):
@@ -312,14 +328,15 @@ class Model(metaclass=MetaModel):
     def select(cls, *args):
         return SelectQuery(cls, *args)
 
-    @classmethod
-    def update(cls, *args, **kwargs):
-        return UpdateQuery(cls, *args, **kwargs)
+    #@classmethod
+    def update(self, *args, **kwargs):
+        return UpdateQuery(self, *args, **kwargs)
 
     @classmethod
     def delete(cls, *args, **kwargs):
         return DeleteQuery(cls, *args, **kwargs)
 
+        
     def __str__(self):
         return str(vars(self))
     
