@@ -98,6 +98,18 @@ class DateTime(Field):
     def to_string(self, data, format='%Y-%m-%d %H:%M:%S'):
         return data.strftime(format)
 
+class Date(Field):
+    def __init__(self):
+        super(Date, self).__init__('DATETIME')
+
+    def sql_format(self, data):
+        return "'{0}'".format(self.to_string(data))
+    
+    def _serialize_data(self, data):
+        return str(data)
+    def to_string(self, data, format='%Y-%m-%d'):
+        return data.strftime(format)
+
 class Timestamp(Field):
     def __init__(self):
         super(Timestamp, self).__init__('TIMESTAMP')
@@ -371,7 +383,7 @@ class Model(metaclass=MetaModel):
             columns=', '.join(columns),
             items=', '.join(values)
         )
-
+        print(sql)
         if not databases:
             databases = self.__dbs__
         

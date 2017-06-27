@@ -71,7 +71,7 @@ class SelectQuery(object):
             cursor = db.execute(sql=sql, commit=True)
             record = cursor.fetchone()
             #print(type(record[0]))
-            records += record[0]
+            records += record
         return records
 
     def __getitem__(self, slices):

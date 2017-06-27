@@ -52,11 +52,16 @@ class Sqlite(threading.local):
         q = "SELECT sql FROM sqlite_master;"
         tables = self.execute(q).fetchall()
         for table in tables:
-            t = table[0].replace("CREATE TABLE ", "")
+            if table[0] ==  None:
+                print(table)
+                continue
+            t = table[0].replace("CREATE TABLE ", "").replace("`", "").replace("CONSTRAINT", "")
             table_name = t[:t.find(" ")]
             columns = t[t.find(" "):].strip()[1:-1].split(", ")
+            columns = [x.strip() for x in columns if x.strip().split(" ")[0] not in ("PRIMARY", "UNIQUE")]
+            print(columns)
             table_list.append({table_name:columns})
-
+        
         return table_list
 
     def generate(self, save=True):
@@ -84,15 +89,19 @@ class Sqlite(threading.local):
                     if "primary key" in column:
                         model += field_str.format(field_name, "PrimaryKey", ", ".join(extra))
                     elif "references" in column:
-                        target_table = column[:column.find("REFERENCES ")].split(" (")[0].split(" ")[0]
-                        extra.append(target_table.title())
-                        model += field_str.format(field_name, "ForeignKey", ", ".join(extra))
+
+                        try:
+                            target_table = column[column.find("references"):].split(" (")[0].split(" ")[1]
+                            extra.append(target_table.title())
+                            model += field_str.format(field_name, "ForeignKey", ", ".join(extra))
+                        except:
+                            print(column)
                     else:
                         model += field_str.format(field_name, field_type.title(), ", ".join(extra))
-            code += model
+            code += model+"\n"
         
         if save:
-            with open("models/"+self.conf['name'], 'w') as f:
+            with open("models/"+self.conf['name']+".py", 'w') as f:
                 f.write("from dorm.database import models\n\n")
                 f.write(code)
         return code
@@ -124,7 +133,7 @@ class Sqlite(threading.local):
             #pprint(sql)
             return cursor
         except Exception as e:
-            raise e
+            print(e)
 
 class SqliteNotDoneYet(object):
     """SQLite Driver"""
