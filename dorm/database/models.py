@@ -19,7 +19,7 @@ class Field(object):
 
     def create_sql(self):
         """Return sql statement for create table."""
-        return '"{0}" {1}'.format(self.name, self.column_type)
+        return '{0} {1}'.format(self.name, self.column_type)
 
 class Integer(Field):
     """SQLite Integer field"""
@@ -91,7 +91,7 @@ class DateTime(Field):
         super(DateTime, self).__init__('DATETIME')
 
     def sql_format(self, data):
-        return "'{0}'".format(self.to_string())
+        return "'{0}'".format(self.to_string(data))
     
     def _serialize_data(self, data):
         return str(data)
@@ -103,7 +103,7 @@ class Timestamp(Field):
         super(Timestamp, self).__init__('TIMESTAMP')
 
     def sql_format(self, data):
-        return "'{0}'".format(self.to_string())
+        return "'{0}'".format(self.to_string(data))
     
     def _serialize_data(self, data):
         return str(data)
@@ -117,7 +117,7 @@ class PrimaryKey(Integer):
         super(PrimaryKey, self).__init__()
 
     def create_sql(self):
-        return '"{0}" {1} NOT NULL PRIMARY KEY'.format(self.name, self.column_type)
+        return '{0} {1} NOT NULL PRIMARY KEY'.format(self.name, self.column_type)
 
 class ForeignKey(Field):
     def __init__(self, to_table):

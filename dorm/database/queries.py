@@ -225,4 +225,4 @@ class DeleteQuery(object):
 
     def commit(self):
         # parallel multi db execute
-        return db_job_spawner(self.sql, self.databases, commit=True)
+        return db_job_spawner(self.sql, self.model.__dbs__, commit=True)
