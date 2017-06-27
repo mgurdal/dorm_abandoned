@@ -11,3 +11,4 @@ node_modules
 datastore/*
 examples/notebooks/AltairTutorial
 env
+wenv
