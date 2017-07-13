@@ -13,7 +13,7 @@ class BaseDriver(object):
         setattr(self, 'Model', Model)
         if not hasattr(self.Model, "__dbs__"):
             setattr(self.Model, '__dbs__', [])
-        
+
         self.Model.__dbs__.append(self)
             #print(self.database)
 
@@ -50,24 +50,23 @@ class BaseDriver(object):
 
     def close(self):
         self.conn.close()
-        
+
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         #print("Closing")
         pass
-    
+
     def execute(self, sql, commit=False):
         cursor = self.conn.cursor()
-        
+
         try:
-            
             cursor.execute(sql)
             if commit:
                 self.commit()
-            print(sql)
+
             return cursor
         except Exception as e:
-            raise e
+            print(e)
 

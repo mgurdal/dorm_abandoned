@@ -1,6 +1,7 @@
 """
 sql queries in here
 """
+
 import gevent
 import pandas as pd
 import dask.dataframe as dd
@@ -49,7 +50,10 @@ class SelectQuery(object):
 
     def first(self, datatype=None):
         self.base_sql = '{0} limit 1;'.format(self.base_sql.rstrip(';'))
-        return next(self._execute(self.sql, datatype=datatype))
+        try:
+            return next(self._execute(self.sql, datatype=datatype))
+        except:
+            pass
 
     def where(self, *args, **kwargs):
         where_list = []
@@ -152,18 +156,45 @@ class SelectQuery(object):
         df = dd.from_pandas(self.as_df(), npartitions=5)
         return df
 
-    def _execute(self, sql, datatype=None):
-    
+    def _execute(self, sql, datatype=None, target_databases=[]):
+        
+        """
+        jobs, descriptors = [], []
+        if not target_databases:
+            target_databases = self.databases
         # parallel multi db execution
+        
+        for db in target_databases:
+            cursor = db.execute(sql)
+            descs = []
+            if cursor:
+                descriptors.append([x[0] for x in cursor.description])
+                descs.append(cursor.description)
+                jobs.append(gevent.spawn(cursor.fetchall))
+            else:
+                print("{}:{} {} database does not seem have {} table.".format(db.conf['host'],
+                    db.conf['port'],
+                    db.conf['database_name'],
+                    self.model.__tablename__))
+                continue
+        print(descriptors)
+        gevent.joinall(jobs)
+    
+        # execute jobs -> might need to add some async functionality due to IO bound
+        records = (job.value for job in jobs)
+        
+        query_set = (record for record in records)
+        """
         cursors = [(db.execute(sql), db.database) for db in self.databases] # for
         #print([db.database for db in self.databases])
+
         descriptor = list(i[0] for cursor in cursors for i in cursor[0].description)
         jobs = [(gevent.spawn(cursor[0].fetchall), cursor[1]) for cursor in cursors]
         gevent.joinall([x[0] for x in jobs])
         records = [(job[0].value, job[1]) for job in jobs]
 
         query_set = ((descriptor, instance, record[1]) for record in records for instance in record[0])
-        
+        #print(descriptors)
         if not datatype:
             return (self._make_instance(*x) for x in query_set)
         elif datatype == 'dict':

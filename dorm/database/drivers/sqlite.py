@@ -3,10 +3,10 @@ import sys
 import sqlite3
 import threading
 from pprint import pprint
-#from .base import BaseDriver
+from .base import BaseDriver
 from ..models import Model, ManyToMany
 
-class Sqlite(threading.local):
+class Sqlite(BaseDriver):
     def __init__(self, conf):
         self.database = conf['database_name']
         self.conn = sqlite3.connect(database=self.database,
@@ -125,19 +125,9 @@ class Sqlite(threading.local):
         cursor = self.conn.cursor()
 
         try:
-            #pprint(sql)
             cursor.execute(sql)
-
             if commit:
                 self.commit()
-            #pprint(sql)
             return cursor
         except Exception as e:
             print(e)
-
-class SqliteNotDoneYet(object):
-    """SQLite Driver"""
-    def __init__(self, conf):
-        super(Sqlite, self).__init__(adapter=sqlite3,
-                                     database=conf['database_name'],
-                                     detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES)

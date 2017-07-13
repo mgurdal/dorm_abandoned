@@ -10,6 +10,7 @@ class Mysql(BaseDriver):
                                passwd=conf['password'],
                                db=conf['database_name']
                               )
+        self.conf = conf
         super(Mysql, self).__init__(conn)
 
     def create_table(self, model):
