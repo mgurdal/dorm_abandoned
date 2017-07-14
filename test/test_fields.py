@@ -29,12 +29,20 @@ class IntegerTestCase(unittest.TestCase):
 
 class FloatTestCase(unittest.TestCase):
     """SQLite Float field"""
+
+    def setUp(self):
+        self.test_int_field = models.Float()
+
+    def test_column_type(self):
+        self.assertEqual('DOUBLE', self.test_int_field.column_type)        
+
     def test_sql_format(self):
         """sql query format of data"""
-        pass
+        self.assertIsInstance(self.test_int_field.sql_format(20.6), str)
     
     def test__serialize_data(self):
-        pass
+        self.assertIsInstance(self.test_int_field._serialize_data(20.5), float)
+        self.assertEqual(self.test_int_field._serialize_data(20.5), 20.5)
 
 class CharTestCase(unittest.TestCase):
     """SQLite Char field"""
