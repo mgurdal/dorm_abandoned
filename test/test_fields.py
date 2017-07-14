@@ -1,31 +1,39 @@
 import unittest
-import queries, models
-
+from dorm.database import models
 
 class FieldTestCase(unittest.TestCase):
     """Base field object"""
 
     def test_create_sql(self):
         """Return sql statement for create table."""
-        pass
+        test_field = models.Field('COLUMN_TYPE')
+        test_field.name = 'COLUMN_NAME'
+
+        self.assertEqual("COLUMN_NAME COLUMN_TYPE", test_field.create_sql())
 
 class IntegerTestCase(unittest.TestCase):
-    """SQLite Integer field"""
+    """SQLite Integer fie"COLUMN_NAME COLUMN_TYPE"ld"""
 
-    def test_sql_format(self, data):
+    def setUp(self):
+        self.test_int_field = models.Integer()
+
+    def test_column_type(self):
+        self.assertEqual('INTEGER', self.test_int_field.column_type)
+
+    def test_sql_format(self):
         """sql query format of data"""
-        pass
+        self.assertIsInstance(self.test_int_field.sql_format(20), str)
     
-    def test__serialize_data(self, data):
-        pass
+    def test__serialize_data(self):
+        self.assertEqual(self.test_int_field._serialize_data(20), 20)
 
 class FloatTestCase(unittest.TestCase):
     """SQLite Float field"""
-    def test_sql_format(self, data):
+    def test_sql_format(self):
         """sql query format of data"""
         pass
     
-    def test__serialize_data(self, data):
+    def test__serialize_data(self):
         pass
 
 class CharTestCase(unittest.TestCase):
@@ -34,11 +42,11 @@ class CharTestCase(unittest.TestCase):
     def test_create_sql(self):
         pass
 
-    def test_sql_format(self, data):
+    def test_sql_format(self):
         """sql query format of data"""
         pass
         
-    def test__serialize_data(self, data):
+    def test__serialize_data(self):
         pass
 
 class VarcharTestCase(unittest.TestCase):
@@ -47,48 +55,48 @@ class VarcharTestCase(unittest.TestCase):
     def test_create_sql(self):
         pass
 
-    def test_sql_format(self, data):
+    def test_sql_format(self):
         """sql query format of data"""
         pass
 
 class TextTestCase(unittest.TestCase):
     """SQLite Text field"""
 
-    def test_sql_format(self, data):
+    def test_sql_format(self):
         """sql query format of data"""
         pass
 
 class DateTimeTestCase(unittest.TestCase):
 
-    def test_sql_format(self, data):
+    def test_sql_format(self):
         pass
     
-    def test__serialize_data(self, data):
+    def test__serialize_data(self):
         pass
-    def test_to_string(self, data, format='%Y-%m-%d %H:%M:%S'):
+    def test_to_string(self):
         pass
 
 class DateTestCase(unittest.TestCase):
     def test___init__(self):
         pass
 
-    def test_sql_format(self, data):
+    def test_sql_format(self):
         pass
     
-    def test__serialize_data(self, data):
+    def test__serialize_data(self):
         pass
-    def test_to_string(self, data, format='%Y-%m-%d'):
+    def test_to_string(self):
         pass
 
 class TimestampTestCase(unittest.TestCase):
 
-    def test_sql_format(self, data):
+    def test_sql_format(self):
         pass
     
-    def test__serialize_data(self, data):
+    def test__serialize_data(self):
         pass
 
-    def test_to_string(self, data, format='%Y-%m-%d %H:%M:%S'):
+    def test_to_string(self):
         pass
 
 
@@ -102,16 +110,16 @@ class ForeignKeyTestCase(unittest.TestCase):
     def test_create_sql(self):
         pass
 
-    def test_sql_format(self, data):
+    def test_sql_format(self):
         """sql query format of data"""
         pass  
 
-    def test__serialize_data(self, data):
+    def test__serialize_data(self):
         pass
     
 class ForeignKeyReverseTestCase(unittest.TestCase):
 
-    def test_update_attr(self, name, tablename, db):
+    def test_update_attr(self):
         pass
 
     def test_all(self):
@@ -125,13 +133,13 @@ class ForeignKeyReverseTestCase(unittest.TestCase):
 
 class TestCaseTestCase(unittest.TestCase):
 
-    def test_update_attr(self, name, tablename, db):
+    def test_update_attr(self):
         pass
 
-    def test_add(self, to_instance):
+    def test_add(self):
         pass
 
-    def test_remove(self, to_instance):
+    def test_remove(self):
         pass
 
     def test_all(self):
@@ -145,7 +153,7 @@ class TestCaseTestCase(unittest.TestCase):
 
 class ManyToManyTestCase(unittest.TestCase):
 
-    def test_update_attr(self, name, tablename, db):
+    def test_update_attr(self):
         pass
 
     def test_create_m2m_table(self):
@@ -159,3 +167,5 @@ class ManyToManyTestCase(unittest.TestCase):
 
     def test_delete_reversed_field(self):
         pass
+if __name__ == '__main__':
+    unittest.main()
