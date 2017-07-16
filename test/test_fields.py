@@ -1,5 +1,7 @@
 import unittest
+from unittest import mock
 from dorm.database import models
+from dorm.database import queries
 from dorm.database.drivers.base import BaseDriver
 
 
@@ -191,7 +193,7 @@ class MockSQLDriver(BaseDriver):
 
     def __init__(self, conf):
         self.database = conf['database_name']
-        conn = None
+        conn = mock.MagicMock()
         self.conf = conf
         super(MockSQLDriver, self).__init__(conn)
 
@@ -202,19 +204,18 @@ class ForeignKeyReverseTestCase(unittest.TestCase):
         self.to_table = models.Model()
         self.to_table.__tablename__ = 'test_to_table'
         self.to_table.id = 1
-        
+
         self.from_table = models.Model()
         self.from_table.__tablename__ = 'test_from_table'
         self.from_table.id = 2
-        
+
         self.from_table_new = models.Model()
         self.from_table_new.__tablename__ = 'test_from_table_new'
         self.from_table_new.id = 3
-        
 
         self.from_table.fk_field = models.ForeignKey(self.to_table)
         self.from_table.fk_field.to_table = 'test_from_table_new'
-        
+
         conf = {'host': 'test_host', 'port': 0, 'user': 'test_user',
                 'passwd': 'test_password', 'database_name': 'test_database_name'}
         self.test_db = MockSQLDriver(conf)
@@ -231,27 +232,56 @@ class ForeignKeyReverseTestCase(unittest.TestCase):
 
     def test_update_attr(self):
         # sqlite.connect().cursor().fetchall.return_value = ['John', 'Bob']
-        
-        self.fk_reverse.update_attr('test_name', 'test_from_table_new', self.test_db)
+
+        self.fk_reverse.update_attr(
+            'test_name', 'test_from_table_new', self.test_db)
         self.assertEqual('test_name', self.fk_reverse.name)
         self.assertEqual('test_from_table_new', self.fk_reverse.tablename)
         self.assertIsNotNone(self.fk_reverse.db)
         self.assertIsInstance(self.fk_reverse.from_model, models.Model)
         self.assertEqual('fk_field', self.fk_reverse.relate_column)
-        
+
     def test__query_sql(self):
-        pass
+        self.fk_reverse.from_model = models.Model()
+        self.fk_reverse.relate_column = 'fk_field'
+        self.fk_reverse.instance_id = 3
+        qsql = self.fk_reverse._query_sql()
+        self.assertIsInstance(qsql, queries.SelectQuery)
+        self.assertEqual(
+            'select {columns} from {tablename} where fk_field="3";', qsql.base_sql)
 
-    def test_all(self):
-        pass
+    def test_all_method(self):
+        import types
 
-    def test_count(self):
-        pass
+        self.fk_reverse.from_model = models.Model()
+        self.fk_reverse.relate_column = 'fk_field'
+        self.fk_reverse.instance_id = 3
+        qsql = self.fk_reverse._query_sql()
+        
+        fake_queryset = (models.Model() for _ in range(2))
+        qsql.all = mock.MagicMock(return_value=fake_queryset)
+
+        self.fk_reverse._query_sql = lambda: qsql
+        self.assertIsInstance(self.fk_reverse.all(), types.GeneratorType)
+        self.assertIsInstance(next(self.fk_reverse.all()), models.Model)
+
+    def test_count_method(self):
+        import types
+
+        self.fk_reverse.from_model = models.Model()
+        self.fk_reverse.relate_column = 'fk_field'
+        self.fk_reverse.instance_id = 3
+        qsql = self.fk_reverse._query_sql()
+        
+        fake_queryset = (models.Model() for _ in range(2))
+        qsql.all = mock.MagicMock(return_value=fake_queryset)
+
+        self.fk_reverse._query_sql = lambda: qsql
+        self.assertIsInstance(self.fk_reverse.all(), types.GeneratorType)
+        self.assertEqual(len(list(self.fk_reverse.all())), 2)
 
 
-
-
-class TestCaseTestCase(unittest.TestCase):
+class ManyToManyBaseTestCase(unittest.TestCase):
 
     def test_update_attr(self):
         pass
