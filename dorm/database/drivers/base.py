@@ -8,7 +8,6 @@ class BaseDriver(object):
     def __init__(self, conn):
         super(BaseDriver, self).__init__()
         self.conn = conn
-
         self.__tables__ = {}
         setattr(self, 'Model', Model)
         if not hasattr(self.Model, "__dbs__"):

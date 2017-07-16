@@ -4,7 +4,7 @@ import time
 import json
 from sqlite3 import OperationalError
 
-from .queries import *
+from dorm.database.queries import *
 from dorm.utils.serializers import jsonify
 
 """
@@ -20,6 +20,9 @@ class Field(object):
     def create_sql(self):
         """Return sql statement for create table."""
         return '{0} {1}'.format(self.name, self.column_type)
+
+    def _serialize_data(self, data):
+        return data.encode()
 
 class Integer(Field):
     """SQLite Integer field"""
@@ -56,10 +59,9 @@ class Char(Field):
 
     def sql_format(self, data):
         """sql query format of data"""
+        if len(data) > self.max_length:
+            raise Exception('maximum length exceeded')
         return "'{0}'".format(str(data))
-        
-    def _serialize_data(self, data):
-        return data.decode()
 
 class Varchar(Field):
     """SQLite Varchar field"""
@@ -73,10 +75,7 @@ class Varchar(Field):
     def sql_format(self, data):
         """sql query format of data"""
         return "'{0}'".format(str(data))
-
-class Email(Char):
-    pass # verification will be added later
-
+    
 class Text(Field):
     """SQLite Text field"""
     def __init__(self):
@@ -91,11 +90,12 @@ class DateTime(Field):
         super(DateTime, self).__init__('DATETIME')
 
     def sql_format(self, data):
-        return "'{0}'".format(self.to_string(data))
+        return "'{0}'".format(str(data))
     
     def _serialize_data(self, data):
         return str(data)
-    def to_string(self, data, format='%Y-%m-%d %H:%M:%S'):
+    
+    def __str__(self, data, format='%Y-%m-%d %H:%M:%S'):
         return data.strftime(format)
 
 class Date(Field):
@@ -103,11 +103,12 @@ class Date(Field):
         super(Date, self).__init__('DATETIME')
 
     def sql_format(self, data):
-        return "'{0}'".format(self.to_string(data))
+        return "'{0}'".format(str(data))
     
     def _serialize_data(self, data):
         return str(data)
-    def to_string(self, data, format='%Y-%m-%d'):
+    
+    def __str__(self, data, format='%Y-%m-%d'):
         return data.strftime(format)
 
 class Timestamp(Field):
@@ -120,7 +121,7 @@ class Timestamp(Field):
     def _serialize_data(self, data):
         return str(data)
 
-    def to_string(self, data, format='%Y-%m-%d %H:%M:%S'):
+    def __str__(self, data, format='%Y-%m-%d %H:%M:%S'):
         return data.strftime(format)
 
 
@@ -152,6 +153,7 @@ class ForeignKey(Field):
         return "'{0}'".format(str(data.id))  
 
     def _serialize_data(self, data):
+        """ not done yet -> serialize the given model """
         return data
     
 class ForeignKeyReverse(object):
@@ -168,10 +170,15 @@ class ForeignKeyReverse(object):
         self.name = name
         self.tablename = tablename
         self.db = db
+
+        # get the related model from database driver's model hash table
         self.from_model = self.db.__tables__[self.from_table]
+        
+        # find the field that makes the relation to this model
+        # and set it's model table name as relate column
         for k, v in self.from_model.__dict__.items():
             if isinstance(v, ForeignKey) and v.to_table == self.tablename:
-                self.relate_column = k.__tablename__
+                self.relate_column = k # this logic might be wrong
 
     def all(self):
         return self._query_sql().all()
