@@ -3,6 +3,9 @@ import sys
 import sqlite3
 import threading
 from pprint import pprint
+
+from parse import parse
+
 from .base import BaseDriver
 from ..models import Model, ManyToMany
 
@@ -14,18 +17,17 @@ class Sqlite(BaseDriver):
                                    )
         self.conf = conf
         self.__tables__ = {}
-        setattr(self, 'Model', Model)
-        if not hasattr(self.Model, "__dbs__"):
-            setattr(self.Model, '__dbs__', [])
-
-        self.Model.__dbs__.append(self)
+        setattr(self, 'Model', Model) # I do not wanna do this
+        if not hasattr(self.Model, "__databases__"):
+            setattr(self.Model, '__databases__', [])
+        self.Model.__databases__.append(self)
 
     def create_table(self, model):
         tablename = model.__tablename__
         # Bug in here, foreign key does not work properly
         create_sql = ', '.join(field.create_sql() for field in model.__fields__.values())
         try:
-            self.execute('create table {0} ({1});'.format(tablename, create_sql), commit=True)
+            self.execute('create table if not exists {0} ({1});'.format(tablename, create_sql), commit=True)
         except Exception as e:
             print(e)
 
@@ -53,15 +55,34 @@ class Sqlite(BaseDriver):
         tables = self.execute(q).fetchall()
         for table in tables:
             if table[0] ==  None:
-                print(table)
                 continue
-            t = table[0].replace("CREATE TABLE ", "").replace("`", "").replace("CONSTRAINT", "")
-            table_name = t[:t.find(" ")]
-            columns = t[t.find(" "):].strip()[1:-1].split(", ")
-            columns = [x.strip() for x in columns if x.strip().split(" ")[0] not in ("PRIMARY", "UNIQUE")]
-            print(columns)
-            table_list.append({table_name:columns})
-        
+
+            table_parser = parse('CREATE TABLE {table_name} ({columns})', table[0])
+            fs = table_parser.named['columns'].split(', ')
+            columns = []
+            for field in fs:
+                field_parser = parse('{name} {type} {rest}', field) or parse('{name} {type})', field) 
+                if field_parser is not None:
+                    field_parser.named['pk'] = False
+                    field_parser.named['fk'] = False
+                    field_parser.named['is_null'] = False
+                    if 'rest' in field_parser.named.keys():
+                        if 'NOT NULL' in field_parser.named['rest']:
+                            field_parser.named['not_null'] = True
+                            
+                        if 'PRIMARY KEY' in field:
+                            field_parser.named['pk'] = True
+    
+                        if 'REFERENCES' in field_parser.named['rest']:
+                            field_parser.named['fk'] = True
+                            table_str = field.split(" REFERENCES ")[1]
+                            related_table = parse("{related_table} ({related_field})", table_str).named
+                            field_parser.named['extras'] = related_table
+                        del field_parser.named['rest']
+                    columns.append(field_parser.named)
+                    
+            table_parser.named['columns'] = columns
+            table_list.append(table_parser.named)
         return table_list
 
     def generate(self, save=True):
@@ -69,7 +90,7 @@ class Sqlite(BaseDriver):
 
         class_str = """class {}(models.Model):\n"""
         field_str = """    {} = models.{}({})\n"""
-        code = ""
+        code = "from dorm.database import models\n\n"
         for model_structure in self.discover():
             
             model=""
@@ -102,7 +123,6 @@ class Sqlite(BaseDriver):
         
         if save:
             with open("models/"+self.conf['name']+".py", 'w') as f:
-                f.write("from dorm.database import models\n\n")
                 f.write(code)
         return code
 
@@ -130,4 +150,4 @@ class Sqlite(BaseDriver):
                 self.commit()
             return cursor
         except Exception as e:
-            print(e)
+            return str(e)

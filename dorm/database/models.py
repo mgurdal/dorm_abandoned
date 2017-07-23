@@ -55,7 +55,7 @@ class Char(Field):
         super(Char, self).__init__('CHAR')
 
     def create_sql(self):
-        return '"{0}" {1}({2})'.format(self.name, self.column_type, self.max_length)
+        return '{0} {1}({2})'.format(self.name, self.column_type, self.max_length)
 
     def sql_format(self, data):
         """sql query format of data"""
@@ -63,14 +63,14 @@ class Char(Field):
             raise Exception('maximum length exceeded')
         return "'{0}'".format(str(data))
 
-class Varchar(Field):
+class VarChar(Field):
     """SQLite Varchar field"""
     def __init__(self, max_length=255):
         self.max_length = max_length
-        super(Varchar, self).__init__('VARCHAR')
+        super(VarChar, self).__init__('VARCHAR')
 
     def create_sql(self):
-        return '"{0}" {1}({2})'.format(self.name, self.column_type, self.max_length)
+        return '{0} {1}({2})'.format(self.name, self.column_type, self.max_length)
 
     def sql_format(self, data):
         """sql query format of data"""
@@ -95,12 +95,12 @@ class DateTime(Field):
     def _serialize_data(self, data):
         return str(data)
     
-    def __str__(self, data, format='%Y-%m-%d %H:%M:%S'):
+    def __str__(self, data, format='%Y-%m-%d %H:%M:%S.%f'):
         return data.strftime(format)
 
 class Date(Field):
     def __init__(self):
-        super(Date, self).__init__('DATETIME')
+        super(Date, self).__init__('DATE')
 
     def sql_format(self, data):
         return "'{0}'".format(str(data))
@@ -132,7 +132,31 @@ class PrimaryKey(Integer):
     def create_sql(self):
         return '{0} {1} NOT NULL PRIMARY KEY'.format(self.name, self.column_type)
 
-class ForeignKey(Field):
+class ForeignKey(Integer):
+    def __init__(self, to_table):
+        self.to_table = to_table
+        super(ForeignKey, self).__init__()
+
+    def create_sql(self):
+        return '{column_name} {column_type} NOT NULL REFERENCES "{tablename}" ("{to_column}")'.format(
+            column_name=self.name,
+            column_type=self.column_type,
+            tablename=self.to_table,
+            to_column='id'
+        )
+
+    def sql_format(self, data):
+        """sql query format of data"""
+        if isinstance(data, Model):
+            return str(data.id) # find the pk
+        else:
+            return super(ForeignKey, self).sql_format(data)
+
+    def _serialize_data(self, data):
+        """ not done yet -> serialize the given model """
+        return data
+
+class ForeignKeyOld(Field):
     def __init__(self, to_table):
         self.to_table = to_table
         self.table_name = to_table.__tablename__
@@ -140,7 +164,7 @@ class ForeignKey(Field):
         super(ForeignKey, self).__init__('INTEGER')
 
     def create_sql(self):
-        fk_sql = '{column_name} {column_type} NOT NULL REFERENCES "{tablename}" ("{to_column}")'.format(
+        fk_sql = '{column_name} {column_type} NOT NULL REFERENCES {tablename} ({to_column})'.format(
             column_name=self.name,
             column_type=self.column_type,
             tablename=self.table_name,
@@ -170,15 +194,10 @@ class ForeignKeyReverse(object):
         self.name = name
         self.tablename = tablename
         self.db = db
-
-        # get the related model from database driver's model hash table
-        self.from_model = self.db.__tables__[self.from_table]
-        
-        # find the field that makes the relation to this model
-        # and set it's model table name as relate column
+        self.from_model = self.db.__tables__[self.from_table.__tablename__]
         for k, v in self.from_model.__dict__.items():
             if isinstance(v, ForeignKey) and v.to_table == self.tablename:
-                self.relate_column = k # this logic might be wrong
+                self.relate_column = k
 
     def all(self):
         return self._query_sql().all()
@@ -189,13 +208,17 @@ class ForeignKeyReverse(object):
     def _query_sql(self):
         return self.from_model.select().where(**{self.relate_column: self.instance_id})
 
+
 class ManyToManyBase(object):
     def __init__(self, to_model):
         self.to_model = to_model
+
         self.name = None
         self.tablename = None
         self.db = None
+
         self.instance_id = None
+
         self.relate_model = None
         self.relate_table = None
         self.relate_column = None
@@ -231,6 +254,7 @@ class ManyToManyBase(object):
         where_sql = 'id in ({0})'.format(', '.join(to_ids))
 
         return self.to_model.select().where(where_sql)
+
 
 class ManyToMany(ManyToManyBase):
     def __init__(self, to_model):
@@ -293,25 +317,28 @@ class MetaModel(type):
         if name == 'Model':
             return super(MetaModel, mcs).__new__(mcs, name, bases, attrs)
 
+        # create a model with given parameters
         cls = super(MetaModel, mcs).__new__(mcs, name, bases, attrs)
         
-        if 'Meta' not in attrs.keys() or not hasattr(attrs['Meta'], 'db_table'):
+        # if model don not have a table name set it's table name | check out wtf was db_table
+        if 'Meta' not in attrs.keys() or not hasattr(attrs['Meta'], '__tablename__'):
             setattr(cls, '__tablename__', name.lower())
         else:
-            setattr(cls, '__tablename__', attrs['Meta'].db_table)
+            setattr(cls, '__tablename__', attrs['Meta'].__tablename__)
+        
+        # if driver is defined book the model instace to tables dict with it's tabelename
+        if hasattr(cls, '__databases__'): # needs to be changed
+            databases = getattr(cls, '__databases__')
+            databases[0].__tables__[cls.__tablename__] = cls
             
-        if hasattr(cls, '__dbs__'):
-            getattr(cls, '__dbs__')[0].__tables__[cls.__tablename__] = cls
         
         fields = {}
         refed_fields = {}
         has_primary_key = False
         for field_name, field in cls.__dict__.items():
             if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToMany):
-                #sys.stderr.write(str(vars(field))+"\n")
-                field.update_attr(field_name, cls.__tablename__, cls.__dbs__[0])
+                field.update_attr(field_name, cls.__tablename__, cls.__databases__[0])
                 refed_fields[field_name] = field
-                
             if isinstance(field, Field):
                 field.name = field_name
                 fields[field_name] = field
@@ -365,7 +392,10 @@ class Model(metaclass=MetaModel):
     def _insert(self, db, sql):
         try:
             cursor = db.execute(sql=sql)
-            self.id = cursor.lastrowid
+            if isinstance(cursor, str):
+                print("Could not add to the {}. {}".format(db.database, cursor))
+            else:
+                self.id = cursor.lastrowid
         except OperationalError as ox:
             print("Table not found in "+db.database)
         finally:
@@ -390,9 +420,9 @@ class Model(metaclass=MetaModel):
             columns=', '.join(columns),
             items=', '.join(values)
         )
-        print(sql)
+        # print(sql)
         if not databases:
-            databases = self.__dbs__
+            databases = self.__databases__
         
         for db in databases:
             self._insert(db, sql)

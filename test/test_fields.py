@@ -250,6 +250,7 @@ class ForeignKeyReverseTestCase(unittest.TestCase):
         self.assertEqual(
             'select {columns} from {tablename} where fk_field="3";', qsql.base_sql)
 
+    # testi :(
     def test_all_method(self):
         import types
 
@@ -283,8 +284,18 @@ class ForeignKeyReverseTestCase(unittest.TestCase):
 
 class ManyToManyBaseTestCase(unittest.TestCase):
 
+    def setUp(self):
+        to_model = models.Model()
+        self.m2m_base = models.ManyToManyBase(to_model)
+        
     def test_update_attr(self):
-        pass
+        self.m2m_base.update_attr('m2m_field', 'm2m_table', MockSQLDriver({'database_name':'test_db'}))
+        self.assertEqual('m2m_field', self.m2m_base.name)
+        self.assertEqual('m2m_table', self.m2m_base.tablename)
+        self.assertIsInstance(self.m2m_base.db, BaseDriver)
+
+    def test__query_sql(self):
+        pass        
 
     def test_add(self):
         pass
@@ -297,10 +308,6 @@ class ManyToManyBaseTestCase(unittest.TestCase):
 
     def test_count(self):
         pass
-
-    def test__query_sql(self):
-        pass
-
 
 class ManyToManyTestCase(unittest.TestCase):
 

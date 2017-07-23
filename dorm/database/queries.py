@@ -34,7 +34,7 @@ class SelectQuery(object):
     def __init__(self, model, *args):
         self.model = model
         self.base_sql = 'select {columns} from {tablename};'
-        self.databases = self.model.__dbs__
+        self.databases = self.model.__databases__
         query_args = list(args) if list(args) else ['*']
         self.query = ', '.join([str(column) for column in query_args])
 
@@ -241,7 +241,7 @@ class UpdateQuery(object):
 
     def commit(self):
         # parallel multi db execute
-        return db_job_spawner(self.sql, self.model.__dbs__, commit=True)
+        return db_job_spawner(self.sql, self.model.__databases__, commit=True)
 
 class DeleteQuery(object):
     def __init__(self, model, *args, **kwargs):
@@ -256,4 +256,4 @@ class DeleteQuery(object):
 
     def commit(self):
         # parallel multi db execute
-        return db_job_spawner(self.sql, self.model.__dbs__, commit=True)
+        return db_job_spawner(self.sql, self.model.__databases__, commit=True)

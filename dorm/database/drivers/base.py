@@ -67,5 +67,6 @@ class BaseDriver(object):
 
             return cursor
         except Exception as e:
-            print(e)
+            print(vars(e))
+            #return e.args[0]
 

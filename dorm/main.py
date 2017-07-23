@@ -35,7 +35,9 @@ class DORM(object):
                 print("Database is not available")
                 print(e)
                 continue
-                
+
+    def _test_connection(self):
+        pass
     def _add_to_stack(self, parameter_list, driver):
         for params in parameter_list:
             self.database_stack.enter_context(driver(params))
@@ -52,7 +54,7 @@ class DORM(object):
         self.model_list += list(args)
 
     def generate_models(self):
-        """ Generate models from databases """
+        """ Generate models from database """
         pass
 
 if __name__ == "__main__":
