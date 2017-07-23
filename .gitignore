@@ -13,3 +13,4 @@ examples/notebooks/AltairTutorial
 env
 wenv
 cover
+.coverage

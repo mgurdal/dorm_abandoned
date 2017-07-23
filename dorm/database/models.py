@@ -183,7 +183,7 @@ class ForeignKeyReverse(object):
 
     def _query_sql(self):
         if not self.relate_column:
-            raise Exception("self.relate_column not initialized!")
+            raise Exception("self.relate_column is not initialized!")
         return self.from_model.select().where(**{self.relate_column: self.instance_id})
 
 
@@ -249,8 +249,8 @@ class ManyToMany(ManyToManyBase):
 
         class_name = '{0}_{1}'.format(self.to_table, self.tablename)
         class_attrs = {
-            self.relate_column: ForeignKey(self.tablename),
-            self.to_column: ForeignKey(self.to_table)
+            self.relate_column: ForeignKey(self.db.__tables__[self.tablename]),
+            self.to_column: ForeignKey(self.db.__tables__[self.to_table])
         }
         m2m_model = type(class_name, (Model, ), class_attrs)
 

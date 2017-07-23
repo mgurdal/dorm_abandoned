@@ -201,12 +201,23 @@ class MockSQLDriver(BaseDriver):
 class ForeignKeyReverseTestCase(unittest.TestCase):
 
     def setUp(self):
+        
         self.from_table = models.Model()
-        self.fk_reverse = models.ForeignKeyReverse(from_table)
+        self.from_table.__tablename__ = 'test_table'
+        self.from_table.test_table = models.ForeignKey(self.from_table.__tablename__)
+        self.db = MockSQLDriver({'database_name':'test'})
+        self.db.__tables__['test_table'] = self.from_table
+        self.fk_reverse = models.ForeignKeyReverse(self.from_table.__tablename__)
 
     def test_update_attr(self):
+        fk_reverse = self.fk_reverse
+        db = self.db
+        fk_reverse.update_attr('test', 'test_table', db)
         
-
+        self.assertIsNotNone(fk_reverse.name)
+        self.assertIsNotNone(fk_reverse.tablename)
+        self.assertIsNotNone(fk_reverse.db)
+        self.assertEqual(fk_reverse.relate_column, "test_table")
     def test__query_sql(self):
         pass
     # testi :(

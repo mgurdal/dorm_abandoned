@@ -25,7 +25,9 @@ class Sqlite(BaseDriver):
     def create_table(self, model):
         tablename = model.__tablename__
         # Bug in here, foreign key does not work properly
+        print(model.__fields__.values())
         create_sql = ', '.join(field.create_sql() for field in model.__fields__.values())
+        
         try:
             self.execute('create table if not exists {0} ({1});'.format(tablename, create_sql), commit=True)
         except Exception as e:
@@ -150,4 +152,6 @@ class Sqlite(BaseDriver):
                 self.commit()
             return cursor
         except Exception as e:
+            print(sql)
+            raise e
             return str(e)
