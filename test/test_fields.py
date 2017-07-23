@@ -201,41 +201,62 @@ class MockSQLDriver(BaseDriver):
 class ForeignKeyReverseTestCase(unittest.TestCase):
 
     def setUp(self):
-        
+
         self.from_table = models.Model()
         self.from_table.__tablename__ = 'test_table'
-        self.from_table.test_table = models.ForeignKey(self.from_table.__tablename__)
-        self.db = MockSQLDriver({'database_name':'test'})
+        self.from_table.test_table = models.ForeignKey(
+            self.from_table.__tablename__)
+        self.db = MockSQLDriver({'database_name': 'test'})
         self.db.__tables__['test_table'] = self.from_table
-        self.fk_reverse = models.ForeignKeyReverse(self.from_table.__tablename__)
+        models.Model.__databases__ = [self.db]
+        models.Model.__tablename__ = 'test_table'
+        self.fk_reverse = models.ForeignKeyReverse(self.from_table)
 
     def test_update_attr(self):
         fk_reverse = self.fk_reverse
         db = self.db
-        fk_reverse.update_attr('test', 'test_table', db)
-        
+        fk_reverse.update_attr('test', self.from_table, db)
         self.assertIsNotNone(fk_reverse.name)
         self.assertIsNotNone(fk_reverse.tablename)
         self.assertIsNotNone(fk_reverse.db)
         self.assertEqual(fk_reverse.relate_column, "test_table")
+
     def test__query_sql(self):
-        pass
+        db = self.db
+        fk_reverse = self.fk_reverse
+        fk_reverse.update_attr('test', self.from_table, db)
+        self.assertIsInstance(fk_reverse._query_sql(), queries.SelectQuery)
+
     # testi :(
     def test_all_method(self):
-        pass
+        import types
+        db = self.db
+        fk_reverse = self.fk_reverse
+        fk_reverse.update_attr('test', self.from_table, db)
+        res = self.fk_reverse._query_sql().all()
+        self.assertIsInstance(res, types.GeneratorType)
+
     def test_count_method(self):
-        pass
+        db = self.db
+        fk_reverse = self.fk_reverse
+        fk_reverse.update_attr('test', self.from_table, db)
+        # fake count function
+        queries.SelectQuery.count = lambda _: ([0] for _ in range(1))
+        res = next(self.fk_reverse._query_sql().count())
+        self.assertIsInstance(res, list)
+        self.assertEquals(res, [0])
 
 
 class ManyToManyBaseTestCase(unittest.TestCase):
 
     def setUp(self):
         pass
+
     def test_update_attr(self):
         pass
 
     def test__query_sql(self):
-        pass        
+        pass
 
     def test_add(self):
         pass
@@ -248,6 +269,7 @@ class ManyToManyBaseTestCase(unittest.TestCase):
 
     def test_count(self):
         pass
+
 
 class ManyToManyTestCase(unittest.TestCase):
 

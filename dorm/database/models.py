@@ -157,6 +157,7 @@ class ForeignKey(Integer):
         return data
     
 class ForeignKeyReverse(object):
+    """ Not designed as a regular model field """
     def __init__(self, from_table):
         self.from_table = from_table
         self.name = None
@@ -166,9 +167,9 @@ class ForeignKeyReverse(object):
         self.from_model = None
         self.relate_column = None
 
-    def update_attr(self, name, tablename, db):
+    def update_attr(self, name, table, db):
         self.name = name
-        self.tablename = tablename
+        self.tablename = table.__tablename__
         self.db = db
         self.from_model = self.db.__tables__[self.from_table.__tablename__]
         for k, v in self.from_model.__dict__.items():
@@ -314,7 +315,10 @@ class MetaModel(type):
         refed_fields = {}
         has_primary_key = False
         for field_name, field in cls.__dict__.items():
-            if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToMany):
+            if isinstance(field, ForeignKeyReverse):
+                field.update_attr(field_name, cls, cls.__databases__[0])
+                refed_fields[field_name] = field
+            elif isinstance(field, ManyToMany):
                 field.update_attr(field_name, cls.__tablename__, cls.__databases__[0])
                 refed_fields[field_name] = field
             if isinstance(field, Field):
