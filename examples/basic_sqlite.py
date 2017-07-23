@@ -28,7 +28,7 @@ class Table_1(models.Model):
     date_1 = models.Date()
     datetime_1 = models.DateTime()
     fk_1 = models.ForeignKey(Table_2)
-    mm_1 = models.ManyToMany(Table_2)
+    mm_1 = models.ForeignKeyReverse(Table_2)
 
 
 #if __name__ == '__main__':

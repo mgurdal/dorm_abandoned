@@ -138,10 +138,10 @@ class ForeignKey(Integer):
         super(ForeignKey, self).__init__()
 
     def create_sql(self):
-        return '{column_name} {column_type} NOT NULL REFERENCES "{tablename}" ("{to_column}")'.format(
+        return '{column_name} {column_type} NOT NULL REFERENCES {tablename} ({to_column})'.format(
             column_name=self.name,
             column_type=self.column_type,
-            tablename=self.to_table,
+            tablename=self.to_table.__tablename__,
             to_column='id'
         )
 
@@ -151,30 +151,6 @@ class ForeignKey(Integer):
             return str(data.id) # find the pk
         else:
             return super(ForeignKey, self).sql_format(data)
-
-    def _serialize_data(self, data):
-        """ not done yet -> serialize the given model """
-        return data
-
-class ForeignKeyOld(Field):
-    def __init__(self, to_table):
-        self.to_table = to_table
-        self.table_name = to_table.__tablename__
-        
-        super(ForeignKey, self).__init__('INTEGER')
-
-    def create_sql(self):
-        fk_sql = '{column_name} {column_type} NOT NULL REFERENCES {tablename} ({to_column})'.format(
-            column_name=self.name,
-            column_type=self.column_type,
-            tablename=self.table_name,
-            to_column='id'
-        )
-        return fk_sql
-
-    def sql_format(self, data):
-        """sql query format of data"""
-        return "'{0}'".format(str(data.id))  
 
     def _serialize_data(self, data):
         """ not done yet -> serialize the given model """
@@ -206,6 +182,8 @@ class ForeignKeyReverse(object):
         return self._query_sql().count()
 
     def _query_sql(self):
+        if not self.relate_column:
+            raise Exception("self.relate_column not initialized!")
         return self.from_model.select().where(**{self.relate_column: self.instance_id})
 
 
