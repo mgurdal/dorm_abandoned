@@ -32,6 +32,60 @@ class SelectQueryTestCase(unittest.TestCase):
         stub_db = select_q.databases[0]
         stub_db.execute.assert_called_with(commit=True, sql='select foo(name) from stub_model;')
 
+    def test_avg(self):
+        select_q = SelectQuery(self.stub_model, 'amount')
+        stub_db = select_q.databases[0]
+        select_q.avg()
+        stub_db.execute.assert_called_with(commit=True, sql='select avg(amount) from stub_model;')
+
+    def test_min(self):
+        select_q = SelectQuery(self.stub_model, 'amount')
+        stub_db = select_q.databases[0]
+        select_q.min()
+        stub_db.execute.assert_called_with(commit=True, sql='select min(amount) from stub_model;')
+
+    def test_max(self):
+        select_q = SelectQuery(self.stub_model, 'amount')
+        stub_db = select_q.databases[0]
+        select_q.max()
+        stub_db.execute.assert_called_with(commit=True, sql='select max(amount) from stub_model;')
+
+    def test_sum(self):
+        select_q = SelectQuery(self.stub_model, 'amount')
+        stub_db = select_q.databases[0]
+        select_q.sum()
+        stub_db.execute.assert_called_with(commit=True, sql='select sum(amount) from stub_model;')
+
+    def test_count(self):
+        select_q = SelectQuery(self.stub_model, 'amount')
+        stub_db = select_q.databases[0]
+        select_q.count()
+        stub_db.execute.assert_called_with(commit=True, sql='select count(amount) from stub_model;')
+
+
+    def test_first_without_datatype(self):
+        select_q = SelectQuery(self.stub_model)
+        stub_db = select_q.databases[0]
+        select_q._execute = MagicMock(return_value=self.stub_model) # check the return value
+        select_q.first()
+        select_q._execute.assert_called_with('select * from stub_model limit 1;', datatype=None)
+
+    def test_first_with_datatype(self):
+        select_q = SelectQuery(self.stub_model)
+        stub_db = select_q.databases[0]
+        select_q._execute = MagicMock() # check the return value
+        select_q.first(datatype=dict)
+        select_q._execute.assert_called_with('select * from stub_model limit 1;', datatype=dict)
+
+    def test_like(self):
+        select_q = SelectQuery(self.stub_model, 'name')
+        where_q = select_q.where(id=1)
+        like_q = where_q.like('%mehmet%') # check the invalid type
+        self.assertIsInstance(where_q, SelectQuery)
+        # query might be wrong
+        self.assertEqual('select name from stub_model where id=1 like %mehmet%;', select_q.sql)
+
+
 class UpdateQueryTestCase(unittest.TestCase):
     """ test update queries in here """
 

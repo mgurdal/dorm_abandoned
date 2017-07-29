@@ -79,7 +79,6 @@ class SelectQuery(object):
         )
         records = []
         # parallel multi db execute
-        print(sql)
         for db in self.databases:
             cursor = db.execute(sql=sql, commit=True)
             record = cursor.fetchone()
@@ -145,8 +144,8 @@ class SelectQuery(object):
         if 'where' not in self.base_sql:
             raise DatabaseException(
                 'Like query must have a where clause before')
-
-        self.base_sql = '{0} like "{1}";'.format(
+        # this query might be wrong
+        self.base_sql = '{0} like {1};'.format(
             self.base_sql.rstrip(';'), pattern)
         return self
 
