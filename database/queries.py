@@ -249,10 +249,10 @@ class DeleteQuery(object):
         self.sql = 'delete from {0};'.format(self.model.__tablename__)
         where_list = list(args)
         for k, v in kwargs.items():
-            where_list.append('{0}="{1}"'.format(k, v))
+            where_list.append('{0}={1}'.format(k, v))
 
         if where_list:
-            self.sql = '{0} where {1}'.format(self.sql.rstrip(';'), ' and '.join(where_list))
+            self.sql = '{0} where {1};'.format(self.sql.rstrip(';'), ' and '.join(where_list))
 
     def commit(self):
         # parallel multi db execute
