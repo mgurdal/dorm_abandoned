@@ -1,5 +1,5 @@
 import unittest
-from unittest import mock
+from mock import patch
 from dorm.database import models
 from dorm.database import queries
 from dorm.database.drivers.base import BaseDriver
@@ -24,7 +24,7 @@ class FieldTestCase(unittest.TestCase):
 
 
 class IntegerTestCase(unittest.TestCase):
-    """SQLite Integer fie"COLUMN_NAME COLUMN_TYPE"ld"""
+    """SQLite Integer field"""
 
     def setUp(self):
         self.test_int_field = models.Integer()
@@ -188,70 +188,26 @@ class ForeignKeyTestCase(unittest.TestCase):
         pass
 
 
-class MockSQLDriver(BaseDriver):
-    """Mysql Driver"""
-
-    def __init__(self, conf):
-        self.database = conf['database_name']
-        conn = mock.MagicMock()
-        self.conf = conf
-        super(MockSQLDriver, self).__init__(conn)
-
-
 class ForeignKeyReverseTestCase(unittest.TestCase):
 
-    def setUp(self):
-
-        self.from_table = models.Model()
-        self.from_table.__tablename__ = 'test_table'
-        self.from_table.test_table = models.ForeignKey(
-            self.from_table.__tablename__)
-        self.db = MockSQLDriver({'database_name': 'test'})
-        self.db.__tables__['test_table'] = self.from_table
-        models.Model.__databases__ = [self.db]
-        models.Model.__tablename__ = 'test_table'
-        self.fk_reverse = models.ForeignKeyReverse(self.from_table)
-
     def test_update_attr(self):
-        fk_reverse = self.fk_reverse
-        db = self.db
-        fk_reverse.update_attr('test', self.from_table, db)
-        self.assertIsNotNone(fk_reverse.name)
-        self.assertIsNotNone(fk_reverse.tablename)
-        self.assertIsNotNone(fk_reverse.db)
-        self.assertEqual(fk_reverse.relate_column, "test_table")
+        pass
 
     def test__query_sql(self):
-        db = self.db
-        fk_reverse = self.fk_reverse
-        fk_reverse.update_attr('test', self.from_table, db)
-        self.assertIsInstance(fk_reverse._query_sql(), queries.SelectQuery)
+        pass
 
-    # testi :(
     def test_all_method(self):
-        import types
-        db = self.db
-        fk_reverse = self.fk_reverse
-        fk_reverse.update_attr('test', self.from_table, db)
-        res = self.fk_reverse._query_sql().all()
-        self.assertIsInstance(res, types.GeneratorType)
+        pass
 
     def test_count_method(self):
-        db = self.db
-        fk_reverse = self.fk_reverse
-        fk_reverse.update_attr('test', self.from_table, db)
-        # fake count function
-        queries.SelectQuery.count = lambda _: ([0] for _ in range(1))
-        res = next(self.fk_reverse._query_sql().count())
-        self.assertIsInstance(res, list)
-        self.assertEquals(res, [0])
+        pass
 
 
 class ManyToManyBaseTestCase(unittest.TestCase):
 
     def setUp(self):
         pass
-
+        
     def test_update_attr(self):
         pass
 

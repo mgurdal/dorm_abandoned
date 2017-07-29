@@ -7,7 +7,7 @@ from pprint import pprint
 from contextlib import ExitStack
 
 # 3rd party
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 # core
 from dorm.database.drivers.sqlite import Sqlite
