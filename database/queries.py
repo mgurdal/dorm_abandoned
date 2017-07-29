@@ -9,6 +9,7 @@ from . import models
 
 ENCODING_TYPE = 'utf-8'
 
+
 def db_job_spawner(sql, db_list, commit=True):
     """
     Usage:
@@ -18,12 +19,15 @@ def db_job_spawner(sql, db_list, commit=True):
     result = gevent.joinall(jobs)
     return [job.value for job in jobs]
 
+
 def unicode_str(s):
     return s.encode(ENCODING_TYPE) if isinstance(s, str) else s
+
 
 class DatabaseException(Exception):
     """Base database exception"""
     pass
+
 
 class SelectQuery(object):
     """ select title, content from Question where id = 1 and title = "my title";
@@ -60,7 +64,8 @@ class SelectQuery(object):
             where_list.append('{0}="{1}"'.format(k, str(v)))
         where_list.extend(list(args))
 
-        self.base_sql = '{0} where {1};'.format(self.base_sql.rstrip(';'), ' and '.join(where_list))
+        self.base_sql = '{0} where {1};'.format(
+            self.base_sql.rstrip(';'), ' and '.join(where_list))
         return self
 
     def _base_function(self, func):
@@ -73,7 +78,7 @@ class SelectQuery(object):
         for db in self.databases:
             cursor = db.execute(sql=sql, commit=True)
             record = cursor.fetchone()
-            #print(type(record[0]))
+            # print(type(record[0]))
             records += record
         return records
 
@@ -98,9 +103,10 @@ class SelectQuery(object):
         start = first_slice if first_slice else 1
         end = second_slice if second_slice else -1
 
-        self.base_sql = '{0} limit {1} offset {2};'.format(self.base_sql.rstrip(';'), end, start-1)
+        self.base_sql = '{0} limit {1} offset {2};'.format(
+            self.base_sql.rstrip(';'), end, start - 1)
         return self.all()
-            
+
     def count(self):
         return self._base_function('count')
 
@@ -123,7 +129,8 @@ class SelectQuery(object):
         """
         Question.select().orderby('id', 'desc').all()
         """
-        self.base_sql = '{0} order by {1} {2};'.format(self.base_sql.rstrip(';'), column, order)
+        self.base_sql = '{0} order by {1} {2};'.format(
+            self.base_sql.rstrip(';'), column, order)
         return self
 
     def like(self, pattern):
@@ -131,9 +138,11 @@ class SelectQuery(object):
         Question.select('id').where('content').like('%cont%')
         """
         if 'where' not in self.base_sql:
-            raise DatabaseException('Like query must have a where clause before')
+            raise DatabaseException(
+                'Like query must have a where clause before')
 
-        self.base_sql = '{0} like "{1}";'.format(self.base_sql.rstrip(';'), pattern)
+        self.base_sql = '{0} like "{1}";'.format(
+            self.base_sql.rstrip(';'), pattern)
         return self
 
     def as_df(self):
@@ -157,13 +166,12 @@ class SelectQuery(object):
         return df"""
 
     def _execute(self, sql, datatype=None, target_databases=[]):
-        
         """
         jobs, descriptors = [], []
         if not target_databases:
             target_databases = self.databases
         # parallel multi db execution
-        
+
         for db in target_databases:
             cursor = db.execute(sql)
             descs = []
@@ -179,22 +187,26 @@ class SelectQuery(object):
                 continue
         print(descriptors)
         gevent.joinall(jobs)
-    
+
         # execute jobs -> might need to add some async functionality due to IO bound
         records = (job.value for job in jobs)
-        
+
         query_set = (record for record in records)
         """
-        cursors = [(db.execute(sql), db.database) for db in self.databases] # for
+        cursors = [(db.execute(sql), db.database)
+                   for db in self.databases]  # for
         #print([db.database for db in self.databases])
 
-        descriptor = list(i[0] for cursor in cursors for i in cursor[0].description)
-        jobs = [(gevent.spawn(cursor[0].fetchall), cursor[1]) for cursor in cursors]
+        descriptor = list(i[0]
+                          for cursor in cursors for i in cursor[0].description)
+        jobs = [(gevent.spawn(cursor[0].fetchall), cursor[1])
+                for cursor in cursors]
         gevent.joinall([x[0] for x in jobs])
         records = [(job[0].value, job[1]) for job in jobs]
 
-        query_set = ((descriptor, instance, record[1]) for record in records for instance in record[0])
-        #print(descriptors)
+        query_set = ((descriptor, instance, record[1])
+                     for record in records for instance in record[0])
+        # print(descriptors)
         if not datatype:
             return (self._make_instance(*x) for x in query_set)
         elif datatype == 'dict':
@@ -210,26 +222,35 @@ class SelectQuery(object):
 
         for _, field in instance.__refed_fields__.items():
             if isinstance(field, models.ForeignKeyReverse) or isinstance(field, models.ManyToManyBase):
-                field.instance_id = vars(instance)['id'] # implement  nested query
+                # implement  nested query
+                field.instance_id = vars(instance)['id']
         return instance
 
+
 class UpdateQuery(object):
-    def __init__(self, model, *args, **kwargs):
+    def __init__(self, model, **kwargs):
+        assert 'update_fields' in kwargs, "Please define the fields you want to update. e.g update_fields=[{name:mehmet}]"
+        assert 'where_fields' in kwargs, "Please specify in which fields you want to update. e.g where_fields=[{id:1}]"
         self.model = model
         self.base_sql = 'update {tablename} set {update_columns};'
-        self.update_list = []
-        self.where_list = list(*args)
-        for k, v in kwargs.items():
-            self.where_list.append('{0}="{1}"'.format(k, v))
+        self.update_fields = kwargs['update_fields']  # is this have a cost?
+        self.where_fields = kwargs['where_fields']
 
-        if self.where_list:
-            self.base_sql = '{0} where {1}'.format(self.base_sql.rstrip(';'),
-                                                   ' and '.join(self.where_list)
-                                                  )
+        self.update_list = ['{0}={1}'.format(
+            k, v) for k, v in self.update_fields.items()]
+        self.where_list = ['{0}={1}'.format(k, v)
+                           for k, v in self.where_fields.items()]
+
+        self.base_sql = '{0} where {1};'.format(self.base_sql.rstrip(';'),
+                                                'and '.join(self.where_list)
+                                                )
 
     def set(self, **kwargs):
         for k, v in kwargs.items():
-            self.update_list.append('{0}="{1}"'.format(k, v))
+            # ignore if field already defined in update list
+            if self.update_fields.get(k) == v:
+                continue
+            self.update_list.append('{0}={1}'.format(k, v))
         return self
 
     @property
@@ -243,6 +264,7 @@ class UpdateQuery(object):
         # parallel multi db execute
         return db_job_spawner(self.sql, self.model.__databases__, commit=True)
 
+
 class DeleteQuery(object):
     def __init__(self, model, *args, **kwargs):
         self.model = model
@@ -252,7 +274,8 @@ class DeleteQuery(object):
             where_list.append('{0}={1}'.format(k, v))
 
         if where_list:
-            self.sql = '{0} where {1};'.format(self.sql.rstrip(';'), ' and '.join(where_list))
+            self.sql = '{0} where {1};'.format(
+                self.sql.rstrip(';'), ' and '.join(where_list))
 
     def commit(self):
         # parallel multi db execute
