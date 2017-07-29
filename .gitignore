@@ -12,5 +12,6 @@ datastore/*
 examples/notebooks/AltairTutorial
 env
 wenv
+venv
 cover
 .coverage
