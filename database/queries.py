@@ -59,9 +59,9 @@ class SelectQuery(object):
             pass
 
     def where(self, *args, **kwargs):
-        where_list = []
+        where_list = [] # might need to add validation
         for k, v in kwargs.items():
-            where_list.append('{0}="{1}"'.format(k, str(v)))
+            where_list.append('{0}={1}'.format(k, str(v)))
         where_list.extend(list(args))
 
         self.base_sql = '{0} where {1};'.format(
@@ -69,12 +69,17 @@ class SelectQuery(object):
         return self
 
     def _base_function(self, func):
-        sql = self.base_sql.format(
+        # support custom functions
+        
+        # this logic might be wrong, might need
+        # to apply function for each selected column
+        sql = self.base_sql.format( 
             columns='{0}({1})'.format(func, self.query),
             tablename=self.model.__tablename__
         )
         records = []
         # parallel multi db execute
+        print(sql)
         for db in self.databases:
             cursor = db.execute(sql=sql, commit=True)
             record = cursor.fetchone()
