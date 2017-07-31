@@ -15,29 +15,35 @@ class Sqlite(BaseDriver):
         self.conn = sqlite3.connect(database=self.database,
                                     detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
                                    )
-        self.conf = conf
+        self.config = conf
         self.__tables__ = {}
-        setattr(self, 'Model', Model) # I do not wanna do this
-        if not hasattr(self.Model, "__databases__"):
-            setattr(self.Model, '__databases__', [])
-        self.Model.__databases__.append(self)
+        
+        # I do not wanna do this 
+        # instead I can reach to the database driver from 
+        # the models's conf variable
+        setattr(self, 'Model', Model)
+        if not hasattr(self.Model, "__conf__"):
+            setattr(self.Model, '__conf__', {})
+        self.Model.__conf__.update(self.conf) # model conf update this
 
     def create_table(self, model):
         tablename = model.__tablename__
+        
         # Bug in here, foreign key does not work properly
-        print(model.__fields__.values())
+        #print(model.__fields__.values())
         create_sql = ', '.join(field.create_sql() for field in model.__fields__.values())
         
         try:
             self.execute('create table if not exists {0} ({1});'.format(tablename, create_sql), commit=True)
         except Exception as e:
-            print(e)
+            raise e
 
         if tablename not in self.__tables__.keys():
             self.__tables__[tablename] = model
 
-        for field in model.__refed_fields__.values():
+        for field in model.__refered_fields__.values():
             if isinstance(field, ManyToMany):
+                #print("Creating many to many", field)
                 field.create_m2m_table()
 
     def drop_table(self, model):
@@ -45,7 +51,7 @@ class Sqlite(BaseDriver):
         self.execute('drop table IF EXISTS {0};'.format(tablename), commit=True)
         #del self.models.__tables__[tablename]
 
-        for name, field in model.__refed_fields__.items():
+        for name, field in model.__refered_fields__.items():
             if isinstance(field, ManyToMany):
                 field.drop_m2m_table()
 
@@ -145,13 +151,18 @@ class Sqlite(BaseDriver):
 
     def execute(self, sql, commit=False):
         cursor = self.conn.cursor()
-
+        
         try:
             cursor.execute(sql)
+            
             if commit:
-                self.commit()
+                try:
+                    print("RAN: ",sql)
+                    self.commit()
+                except e:
+                    print(e)
             return cursor
         except Exception as e:
-            print(sql)
+            #print(sql)
             raise e
             return str(e)

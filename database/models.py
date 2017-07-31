@@ -26,6 +26,9 @@ class Field(object):
     def _serialize_data(self, data):
         return data.encode()
 
+    def __str__(self, data):
+        return self.column_type
+
 
 class Integer(Field):
     """SQLite Integer field"""
@@ -205,6 +208,9 @@ class ForeignKeyReverse(object):
             raise Exception("self.relate_column is not initialized!")
         return self.from_model.select().where(**{self.relate_column: self.instance_id})
 
+    def __str__(self):
+        return self.name
+
 
 class ManyToManyBase(object):
 
@@ -230,7 +236,7 @@ class ManyToManyBase(object):
             self.relate_column: self.instance_id,
             self.to_column: to_instance.id
         }
-        return self.relate_model(**insert)
+        self.relate_model(**insert).save()
 
     def remove(self, to_instance):
         self.relate_model.delete(**{self.to_column: to_instance.id}).commit()
@@ -248,8 +254,9 @@ class ManyToManyBase(object):
             **{self.relate_column: self.instance_id}).all()
         to_ids = [str(getattr(instance, self.to_column))
                   for instance in relate_instances]
+        
         where_sql = 'id in ({0})'.format(', '.join(to_ids))
-
+        # print(where_sql)
         return self.to_model.select().where(where_sql)
 
 
@@ -301,12 +308,12 @@ class ManyToMany(ManyToManyBase):
         field.relate_model, field.relate_table = self.relate_model, self.relate_table
 
         setattr(self.to_model, field.name, field)
-        self.to_model.__refed_fields__[field.name] = field
+        self.to_model.__refered_fields__[field.name] = field
 
     def delete_reversed_field(self):
         to_column = '{0}s'.format(self.tablename)
         delattr(self.to_model, to_column)
-        del self.to_model.__refed_fields__[to_column]
+        del self.to_model.__refered_fields__[to_column]
 
 
 class MetaModel(type):
@@ -319,25 +326,28 @@ class MetaModel(type):
 
         # create a model with given parameters
         cls = super(MetaModel, mcs).__new__(mcs, name, bases, attrs)
-        print("Creating: ", cls)
-         # if model don not have a table name set it's table name | check out wtf was db_table
+        print("\n\nCreating: ", name)
+        # if model don not have a table name set it's table name | check out wtf was db_table
         if 'Meta' not in attrs.keys() or not hasattr(attrs['Meta'], '__tablename__'):
             setattr(cls, '__tablename__', name.lower())
-            print("__tablename__ set as: ", name.lower())
+            print("\tSet: __tablename__ as", name.lower())
         else:
             setattr(cls, '__tablename__', attrs['Meta'].__tablename__)
-            print("Set __tablename__ as ", attrs['Meta'].__tablename__)
+            print("\tSet: __tablename__ as", attrs['Meta'].__tablename__)
+
+        print("\n\tMap: {} to related databases".format(name))
         
-        print("Mapping class to related databases")
+        #if not hasattr(csl, '__databases__'):
+            
         cls = mcs.initialize_databases(cls)
-        
-        # we might need to check if same named fields in 
-        # different databases makes conflict 
-        print("Initializing fields")
+
+        # we might need to check if same named fields in
+        # different databases makes conflict
+        print("\n\tInitialize the Fields")
         cls = mcs.initialize_fields(cls)
-        
+
         return cls
-    
+
     # I seperated the logic but have no idea about testing thiss
     def initialize_databases(model):
         # if driver is defined, book the model instace to tables dict with it's tabelename
@@ -345,11 +355,16 @@ class MetaModel(type):
             databases = getattr(model, '__databases__')
             for database in databases:
                 database.__tables__[model.__tablename__] = model
-                print("Added ", model, "to ", database)
+                try:
+                    print("\t\tAdd: {}".format(" ".join(
+                    (database.config['database_ip'], database.config['database_name'], database.config['type']))))
+                except: pass
             return model
         else:
-            raise Exception('Could not add the model to the database map!')
-    
+            print("This model did not bound to a database yet")
+            return model
+            #raise Exception('Could not add the model to the database map!')
+
     # I seperated the logic but have no idea about testing this
     def initialize_fields(model):
         fields = {}
@@ -358,21 +373,24 @@ class MetaModel(type):
         # iterate over the model attributes and book them to related field maps
         for field_name, field in model.__dict__.items():
             if isinstance(field, ForeignKeyReverse):
-                print("\tAdded ", field, "as ", field_name)
-                field.update_attr(field_name, model, model.__databases__[0])
+                print("\t\tAdd:", field, "as", field_name)
+                for database in model.__databases__:
+                    field.update_attr(field_name, model.name,database)
                 refered_fields[field_name] = field
             elif isinstance(field, ManyToMany):
-                print("\tAdded ", field, "as ", field_name)
-                field.update_attr(
-                    field_name, model.__tablename__, model.__databases__[0])
+                print("\t\tAdd:", field, "as", field_name)
+                for database in model.__databases__:
+                    field.update_attr(
+                    field_name, model.__tablename__, database)
                 refered_fields[field_name] = field
-            if isinstance(field, Field):
-                print("\tAdded ", field, "as ", field_name)
+
+            elif isinstance(field, Field):
+                print("\t\tAdd:", str(vars(field)), "as", field_name)
                 field.name = field_name
                 fields[field_name] = field
                 if isinstance(field, PrimaryKey):
                     has_primary_key = True
-            
+
         # todo
         if not has_primary_key:
             pk = PrimaryKey()
@@ -381,7 +399,7 @@ class MetaModel(type):
 
         setattr(model, '__fields__', fields)
         setattr(model, '__refered_fields__', refered_fields)
-        
+
         return model
 
 
@@ -428,11 +446,12 @@ class Model(metaclass=MetaModel):
             else:
                 self.id = cursor.lastrowid
         except OperationalError as ox:
+            raise ox
             print("Table not found in " + db.database)
         finally:
             db.commit()
 
-        for name, field in self.__refed_fields__.items():
+        for name, field in self.__refered_fields__.items():
             if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
                 field.instance_id = self.id
 
@@ -458,4 +477,4 @@ class Model(metaclass=MetaModel):
 
         for db in databases:
             self._insert(db, sql)
-"COLUMN_NAME COLUMN_TYPE"
+    

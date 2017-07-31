@@ -1,7 +1,7 @@
 """ doc """
 
 from ..models import Model, ManyToMany
-from dorm.utils.serializers import ModelSerializer
+from utils.serializers import ModelSerializer
 
 
 class BaseDriver(object):
@@ -28,7 +28,7 @@ class BaseDriver(object):
         if tablename not in self.__tables__.keys():
             self.__tables__[tablename] = model
 
-        for field in model.__refed_fields__.values():
+        for field in model.__refered_fields__.values():
             if isinstance(field, ManyToMany):
                 field.create_m2m_table()
 
@@ -37,7 +37,7 @@ class BaseDriver(object):
         self.execute('drop table IF EXISTS {0};'.format(tablename), commit=True)
         #del self.__tables__[tablename]
 
-        for name, field in model.__refed_fields__.items():
+        for name, field in model.__refered_fields__.items():
             if isinstance(field, ManyToMany):
                 field.drop_m2m_table()
 
@@ -59,9 +59,11 @@ class BaseDriver(object):
 
     def execute(self, sql, commit=False):
         cursor = self.conn.cursor()
-
+        print(sql)
         try:
+            
             cursor.execute(sql)
+            
             if commit:
                 self.commit()
 

@@ -49,6 +49,7 @@ class SelectQuery(object):
         )
 
     def all(self, datatype=None):
+        
         return self._execute(self.sql, datatype=datatype)
 
     def first(self, datatype=None):
@@ -86,6 +87,7 @@ class SelectQuery(object):
             records += record
         return records
 
+    # this method is really important
     def __getitem__(self, slices):
         """
         Usage:
@@ -97,8 +99,10 @@ class SelectQuery(object):
         """
 
         if isinstance(slices, tuple) and all(map(lambda s: isinstance(s, slice), slices)):
-            self.databases = self.databases[slices[1]]
-            first_slice, second_slice = slices[0].start, slices[0].stop
+            # reduce the databases based on the first slice
+            self.databases = self.databases[slices[0]]
+            # reduce the query based on second slice
+            first_slice, second_slice = slices[1].start, slices[1].stop
         elif isinstance(slices, slice):
             first_slice, second_slice = slices.start, slices.stop
         else:
@@ -169,6 +173,7 @@ class SelectQuery(object):
         df = dd.from_pandas(self.as_df(), npartitions=5)
         return df"""
 
+    # hard to test, needs refactor
     def _execute(self, sql, datatype=None, target_databases=[]):
         """
         jobs, descriptors = [], []
@@ -210,7 +215,6 @@ class SelectQuery(object):
 
         query_set = ((descriptor, instance, record[1])
                      for record in records for instance in record[0])
-        # print(descriptors)
         if not datatype:
             return (self._make_instance(*x) for x in query_set)
         elif datatype == 'dict':
@@ -221,10 +225,11 @@ class SelectQuery(object):
         try:
             instance = self.model(**dict(zip(descriptor, record)))
             setattr(instance, "origin", database)
-        except TypeError:
-            return None
-
-        for _, field in instance.__refed_fields__.items():
+        except TypeError as  e:
+            raise e
+        
+    def _handle_refered_fields(self, instance):
+        for _, field in instance.__refered_fields__.items():
             if isinstance(field, models.ForeignKeyReverse) or isinstance(field, models.ManyToManyBase):
                 # implement  nested query
                 field.instance_id = vars(instance)['id']

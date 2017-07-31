@@ -1,3 +1,22 @@
+## Architecture
+
+## Workflow
+1) user defines the databases via panel or config file
+    1) Simple and fluid design
+    2) Easy to set up
+    3) Can work with known visualization and CI tools
+2) dorm creates drivers based on conf
+    1) Tests connection strength
+    2) Gathers meta data from databases
+3) drivers discovers databases based on conf
+    1) Discovers the tables, columns and relations
+    2) Detects manytomany relations 
+    3) Generates model code from database information
+4) drivers generates models and inserts itself to the models as conf
+    1) Driver analyzes the models and generates model instances
+    2) With a tinydb or reducer solution models can easly be found
+    3) 
+5) models 
 
 ## Create Models
 ```python
