@@ -78,11 +78,11 @@ class CharTestCase(unittest.TestCase):
             self.assertEqual('Maximum length exceeded', e.args[0])
 
 
-class VarCharTestCase(unittest.TestCase):
-    """SQLite VarChar field"""
+class VarcharTestCase(unittest.TestCase):
+    """SQLite Varchar field"""
 
     def setUp(self):
-        self.test_char_field = models.VarChar(max_length=4)
+        self.test_char_field = models.Varchar(max_length=4)
 
     def test_create_sql(self):
         self.test_char_field.name = 'test'
@@ -107,21 +107,21 @@ class TextTestCase(unittest.TestCase):
         self.assertEqual("'test'", models.Text().sql_format('test'))
 
 
-class DateTimeTestCase(unittest.TestCase):
+class DatetimeTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.test_datetime = models.DateTime()
+        self.test_Datetime = models.Datetime()
 
     def test_sql_format(self):
         """sql query format of data"""
         from datetime import datetime
         self.assertEqual("'2017-07-07 00:00:00'",
-                         self.test_datetime.sql_format(datetime(2017, 7, 7, 0, 0, 0)))
+                         self.test_Datetime.sql_format(datetime(2017, 7, 7, 0, 0, 0)))
 
     def test__serialize_data(self):
         from datetime import datetime
         self.assertEqual('2017-07-07 00:00:00',
-                         self.test_datetime._serialize_data(datetime(2017, 7, 7, 0, 0, 0)))
+                         self.test_Datetime._serialize_data(datetime(2017, 7, 7, 0, 0, 0)))
 
 
 class DateTestCase(unittest.TestCase):
@@ -143,7 +143,7 @@ class DateTestCase(unittest.TestCase):
 class TimestampTestCase(unittest.TestCase):
 
     def setUp(self):
-        self.test_timestamp = models.DateTime()
+        self.test_timestamp = models.Datetime()
 
     def test_sql_format(self):
         """sql query format of data"""

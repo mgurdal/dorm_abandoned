@@ -34,10 +34,10 @@ class SelectQuery(object):
         select title, content from Question where id > 3;
     """
 
-    def __init__(self, model, *args):
-        self.model = model
+    def __init__(self, model, *args, target_databases=[]):
+        self.model = model.__class__
         self.base_sql = 'select {columns} from {tablename};'
-        self.databases = self.model.__databases__
+        self.databases = target_databases if target_databases else self.model.__databases__
         query_args = list(args) if list(args) else ['*']
         self.query = ', '.join([str(column) for column in query_args])
 
@@ -49,7 +49,7 @@ class SelectQuery(object):
         )
 
     def all(self, datatype=None, batch_size=None):
-        
+
         return self._execute(self.sql, datatype=datatype, batch_size=batch_size)
 
     def first(self, datatype=None):
@@ -60,7 +60,7 @@ class SelectQuery(object):
             raise e
 
     def where(self, *args, **kwargs):
-        where_list = [] # might need to add validation
+        where_list = []  # might need to add validation
         for k, v in kwargs.items():
             where_list.append('{0}={1}'.format(k, str(v)))
         where_list.extend(list(args))
@@ -71,10 +71,10 @@ class SelectQuery(object):
 
     def _base_function(self, func):
         # support custom functions
-        
+
         # this logic might be wrong, might need
         # to apply function for each selected column
-        sql = self.base_sql.format( 
+        sql = self.base_sql.format(
             columns='{0}({1})'.format(func, self.query),
             tablename=self.model.__tablename__
         )
@@ -175,41 +175,13 @@ class SelectQuery(object):
 
     # hard to test, needs refactor
     def _execute(self, sql, datatype=dict, batch_size=None):
-        print("Running ", sql)
-        """
-        jobs, descriptors = [], []
-        if not target_databases:
-            target_databases = self.databases
-        # parallel multi db execution
-
-        for db in target_databases:
-            cursor = db.execute(sql)
-            descs = []
-            if cursor:
-                descriptors.append([x[0] for x in cursor.description])
-                descs.append(cursor.description)
-                jobs.append(gevent.spawn(cursor.fetchall))
-            else:
-                print("{}:{} {} database does not seem have {} table.".format(db.conf['host'],
-                    db.conf['port'],
-                    db.conf['database_name'],
-                    self.model.__tablename__))
-                continue
-        print(descriptors)
-        gevent.joinall(jobs)
-
-        # execute jobs -> might need to add some async functionality due to IO bound
-        records = (job.value for job in jobs)
-
-        query_set = (record for record in records)
-        """
         cursors = []
-        
+
         for db in self.databases:
             cursor = db.execute(sql)
             cursors.append(cursor)
             description = [des[0] for des in cursor.description]
-            
+
             def get_cursor(batch_size):
                 if batch_size:
                     next_batch = cursor.fetchmany(batch_size)
@@ -218,11 +190,9 @@ class SelectQuery(object):
                         next_batch = cursor.fetchmany(batch_size)
                 else:
                     yield cursor.fetchall()
-                    
-            
             # fetch data with cunks
-            records = cursor.fetchall() # if not batch_size else cursor.fetchmany(batch_size)
-            for record in records:#get_cursor(batch_size):
+            records = cursor.fetchall()  # if not batch_size else cursor.fetchmany(batch_size)
+            for record in records:  # get_cursor(batch_size):
                 #model = None
                 if not datatype:
                     model = self.model(**dict(zip(description, record)))
@@ -234,15 +204,14 @@ class SelectQuery(object):
                     yield model
                 else:
                     raise Exception("Unsupported result type")
-        
-        
+
     def _make_instance(self, descriptor, record):
 
         try:
             instance = self.model(**dict(zip(descriptor, record)))
-        except TypeError as  e:
+        except TypeError as e:
             raise e
-        
+
     def _handle_refered_fields(self, instance):
         for _, field in instance.__refered_fields__.items():
             if isinstance(field, models.ForeignKeyReverse) or isinstance(field, models.ManyToManyBase):

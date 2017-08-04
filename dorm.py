@@ -24,6 +24,7 @@ class DORM(object):
         nodes = [Node(**conf) for conf in config_list]
         setattr(self, 'nodes', nodes)
 
+
     def discover(self):
         """ Discovers the tables inside nodes """
         for i, node in enumerate(self.nodes):
@@ -34,19 +35,28 @@ class DORM(object):
 
                 
                 sq = Sqlite(vars(node))
-                print("-"*10+"Node"+"-"*10)
-                pprint(vars(sq))
-                print("-"*20)
+                    
+                sq.create_table(node)
+                node.save(sq)
+                #print(list(node.select('_id', target_databases=[sq]).all()))
+                #print("-"*10+"Node"+"-"*10)
+                #pprint(vars(sq))
+                #print("-"*20)
                 #sq.create_table(node)
-                tables = sq.discover()
-                print("-"*10+"Tables"+"-"*10)
-                pprint(tables)
-                print("-"*20)
-                node.node_num = 'node_'+str(id(node))
+                #tables = sq.discover()
+                #print("-"*10+"Tables"+"-"*10)
+                #pprint(tables)
+                #print("-"*20)
+                #node.node_num = 'node_'+str(id(node))
                 
-                sq.generate("/generated_models/")
+                codes = sq.generate("generated_models/")
+                for m in codes:
+                    exec(m)
+                #from generated_models import models
 
-                """ I am not smart enough yet
+                """ 
+                Generate models using metaclass feature
+                (I am not smart enough, yet)
                 for table in tables:
                     # generate model from table
                     model = type(table['table_name'].capitalize(),
@@ -60,10 +70,44 @@ class DORM(object):
                     #sq.create_table(model)
                     rel = models.ManyToMany(model)
                     rel.update_attr(node.node_num, node.node_num, sq) 
-                    """
+                """
+                
 
 if __name__ == "__main__":
 
     d = DORM()
     d.from_dict(NODES)
-    d.discover()
+    c = d.discover()
+
+
+
+"""
+class DORM(models.Model):
+
+
+class Driver(models.Model):
+    server_ip = models.IP() # pingable
+    database_ip = models.IP()
+    port = models.Port()
+    database_type = models.Char()
+    database_name = models.Char()
+    user = models.Char()
+    password = models.Password()
+
+class Model(models.Model):
+    id = models.PrimaryKey()
+    driver = models.ForeignKey(Driver)
+    
+
+
+qs = dorm.drivers.all()
+[driver, driver, ...]
+[model, model, ...]
+
+d = Driver(conf)
+m = Model(id=1, driver=d)
+
+
+models
+{id=1: driver_id:1}
+"""

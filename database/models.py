@@ -439,9 +439,9 @@ class Model(metaclass=MetaModel):
     def get(cls, **kwargs):
         return SelectQuery(cls).where(**kwargs).first()
 
-    @classmethod
-    def select(cls, *args):
-        return SelectQuery(cls, *args)
+    #@classmethod
+    def select(self, *args, target_databases=[]):
+        return SelectQuery(self, *args, target_databases=target_databases)
 
     #@classmethod
     def update(self, *args, **kwargs):
