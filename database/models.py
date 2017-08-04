@@ -2,6 +2,7 @@
 import sys
 import time
 import json
+import re
 from sqlite3 import OperationalError
 
 from database.queries import *
@@ -10,7 +11,7 @@ from utils.serializers import jsonify
 """
 Create Field based classes here to represent the database columns
 """
-
+ip_re = re.compile('^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$')
 
 class Field(object):
     """Base field object"""
@@ -26,9 +27,13 @@ class Field(object):
     def _serialize_data(self, data):
         return data.encode()
 
-    def __str__(self, data):
-        return self.column_type
+    def __str__(self):
+        return self.name
 
+    @classmethod
+    def from_str(cls, column_type):
+        # check if it's valid
+        return cls(column_type.capitalize())
 
 class Integer(Field):
     """SQLite Integer field"""
@@ -70,17 +75,16 @@ class Char(Field):
 
     def sql_format(self, data):
         """sql query format of data"""
-        if len(data) > self.max_length:
-            raise Exception('maximum length exceeded')
+        assert len(data) <= self.max_length, 'Maximum length exceeded'
         return "'{0}'".format(str(data))
 
 
-class VarChar(Field):
+class Varchar(Field):
     """SQLite Varchar field"""
 
     def __init__(self, max_length=255):
         self.max_length = max_length
-        super(VarChar, self).__init__('VARCHAR')
+        super(Varchar, self).__init__('VARCHAR')
 
     def create_sql(self):
         return '{0} {1}({2})'.format(self.name, self.column_type, self.max_length)
@@ -101,9 +105,9 @@ class Text(Field):
         return "'{0}'".format(str(data))
 
 
-class DateTime(Field):
+class Datetime(Field):
     def __init__(self):
-        super(DateTime, self).__init__('DATETIME')
+        super(Datetime, self).__init__('DATETIME')
 
     def sql_format(self, data):
         return "'{0}'".format(str(data))
@@ -142,6 +146,17 @@ class Timestamp(Field):
     def __str__(self, data, format='%Y-%m-%d %H:%M:%S'):
         return data.strftime(format)
 
+class IP(Char):
+    def __init__(self):
+        super(IP, self).__init__(max_length=15)
+
+    def sql_format(self, data):
+        assert ip_re.match(data), 'Be sure you were given a valid IP address'
+        return super(IP, self).sql_format(data)
+
+
+    def __str__(self, data, format='%Y-%m-%d %H:%M:%S'):
+        return data.strftime(format)
 
 class PrimaryKey(Integer):
     def __init__(self):
@@ -236,7 +251,7 @@ class ManyToManyBase(object):
             self.relate_column: self.instance_id,
             self.to_column: to_instance.id
         }
-        self.relate_model(**insert).save()
+        self.relate_model(**insert).save(self.db)
 
     def remove(self, to_instance):
         self.relate_model.delete(**{self.to_column: to_instance.id}).commit()
@@ -266,11 +281,12 @@ class ManyToMany(ManyToManyBase):
 
     def update_attr(self, name, tablename, db):
         super(ManyToMany, self).update_attr(name, tablename, db)
+        """
         if self.to_model not in self.db.__tables__.values():
             raise DatabaseException(
-                'Related table "{0}" not exists'.format(self.to_model.__tablename__))
-
-        self.to_table = self.to_model.__tablename__
+                'Related table "{0}" not exists in {1}'.format(self.to_model.__name__.lower(), self.db.))
+        """
+        self.to_table = self.to_model.__name__.lower()
         self.to_column = '{0}_id'.format(self.to_table)
         self.relate_column = '{0}_id'.format(self.tablename)
 
@@ -279,14 +295,17 @@ class ManyToMany(ManyToManyBase):
             self.relate_column: ForeignKey(self.db.__tables__[self.tablename]),
             self.to_column: ForeignKey(self.db.__tables__[self.to_table])
         }
+        
         m2m_model = type(class_name, (Model, ), class_attrs)
-
+        #m2m_model.__databases__ = self.to_model.__databases__
         self.relate_model = m2m_model
+        
         self.relate_table = getattr(m2m_model, '__tablename__')
         self.db.__tables__[self.relate_table] = m2m_model
         self.create_reversed_field()
 
     def create_m2m_table(self):
+    
         self.db.create_table(self.relate_model)
         self.create_reversed_field()
 
@@ -438,6 +457,9 @@ class Model(metaclass=MetaModel):
     def __repr__(self):
         return str(vars(self))
 
+    def create_table(self):
+        self.__databases__[0].create_table(self)
+
     def _insert(self, db, sql):
         try:
             cursor = db.execute(sql=sql)
@@ -454,8 +476,9 @@ class Model(metaclass=MetaModel):
         for name, field in self.__refered_fields__.items():
             if isinstance(field, ForeignKeyReverse) or isinstance(field, ManyToManyBase):
                 field.instance_id = self.id
+                field.__databases__ = self.__databases__
 
-    def save(self, databases=None):
+    def save(self, db=None):
         base_query = 'insert into {tablename}({columns}) values({items});'
         columns = []
         values = []
@@ -471,10 +494,6 @@ class Model(metaclass=MetaModel):
             columns=', '.join(columns),
             items=', '.join(values)
         )
-        # print(sql)
-        if not databases:
-            databases = self.__databases__
-
-        for db in databases:
-            self._insert(db, sql)
+        
+        self._insert(db, sql)
     

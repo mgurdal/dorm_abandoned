@@ -1,0 +1,69 @@
+from database import models
+from database.drivers.sqlite import Sqlite
+from config import MAIN_NODE, NODES
+from pprint import pprint
+
+class Node(models.Model):
+    __tablename__ = "node"
+    _id = models.PrimaryKey()
+    server_ip = models.IP()
+    port = models.Integer()
+    database_name = models.Char()
+    user = models.Char()
+    password = models.Char()
+    db_type = models.Char()
+    #tables = models.ManyToMany(models.Model)
+    # driver = models.DriverField() # implement it pls
+
+
+class DORM(object):
+    """ DORM is an ORM interface that manages 'Nodes' which manges the database tables via Models"""
+    db = Sqlite({'database_name':'node.db'})
+    def from_dict(self, config_list):
+        """ Generates Nodes from config file """
+        nodes = [Node(**conf) for conf in config_list]
+        setattr(self, 'nodes', nodes)
+
+    def discover(self):
+        """ Discovers the tables inside nodes """
+        for i, node in enumerate(self.nodes):
+
+            if node.db_type == 'sqlite':
+                # solution 1
+                # node.__databases__.append(Sqlite(vars(node)))
+
+                
+                sq = Sqlite(vars(node))
+                print("-"*10+"Node"+"-"*10)
+                pprint(vars(sq))
+                print("-"*20)
+                #sq.create_table(node)
+                tables = sq.discover()
+                print("-"*10+"Tables"+"-"*10)
+                pprint(tables)
+                print("-"*20)
+                node.node_num = 'node_'+str(id(node))
+                
+                sq.generate("/generated_models/")
+
+                """ I am not smart enough yet
+                for table in tables:
+                    # generate model from table
+                    model = type(table['table_name'].capitalize(),
+                                 (models.Model,), {})
+                    model.__tablename__ = table['table_name']
+                    node.__tablename__ = 'node'
+                    sq.__tables__[table['table_name']] = model
+                    # make (manytomany if posible) relationship between model and node
+                    #print("Model", vars(model))
+                    # not working yet
+                    #sq.create_table(model)
+                    rel = models.ManyToMany(model)
+                    rel.update_attr(node.node_num, node.node_num, sq) 
+                    """
+
+if __name__ == "__main__":
+
+    d = DORM()
+    d.from_dict(NODES)
+    d.discover()

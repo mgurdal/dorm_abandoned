@@ -1,1 +1,1 @@
-from .main import DORM
+from .dorm import DORM, Node

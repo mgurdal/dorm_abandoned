@@ -1,3 +1,6 @@
+## TODO 
+1) Fix the model code generation
+
 ## Architecture
 
 ## Workflow

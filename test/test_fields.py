@@ -75,7 +75,7 @@ class CharTestCase(unittest.TestCase):
         try:
             self.test_char_field.sql_format("test_ex")
         except Exception as e:
-            self.assertEqual('maximum length exceeded', e.args[0])
+            self.assertEqual('Maximum length exceeded', e.args[0])
 
 
 class VarCharTestCase(unittest.TestCase):

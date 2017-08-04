@@ -1,4 +1,5 @@
-import os, sys
+import os
+import sys
 
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -7,17 +8,24 @@ BASE_DIR = os.path.dirname(os.path.realpath(__file__))
 MODEL_DIR = "/mymodels/"
 
 CLUSTERS = [
-    {'address':'127.0.0.1', 'name':'local_cluster_1', 'port':'40001'},
-    {'address':'127.0.0.1', 'name':'local_cluster_2', 'port':'40002'},
-    {'address':'127.0.0.1', 'name':'local_cluster_3', 'port':'40003'},
-    {'address':'127.0.0.1', 'name':'local_cluster_4', 'port':'40004'},
+    {'address': '127.0.0.1', 'name': 'local_cluster_1', 'port': '40001'},
+    {'address': '127.0.0.1', 'name': 'local_cluster_2', 'port': '40002'},
+    {'address': '127.0.0.1', 'name': 'local_cluster_3', 'port': '40003'},
+    {'address': '127.0.0.1', 'name': 'local_cluster_4', 'port': '40004'},
 ]
 
+MAIN_NODE = {'server_ip': '0.0.0.0', 'port': 5000,
+             'db_type': 'sqlite', 'database_name': 'dorm.db', 'user': 'sky', 'password': 'test'},
+
+
 NODES = [
-        {'server_ip':'0.0.0.0', 'database_ip':'127.0.0.1', 'port': '-', 'type':'sqlite', 'database_name': 'datastore/poll_1.db', 'user':'-', 'password':'-'},
-        {'server_ip':'0.0.0.0', 'database_ip':'127.0.0.1', 'port': 5432, 'type':'postgres', 'database_name': 'test', 'user': 'postgres', 'password':'mysecretpassword'},
-        {'server_ip':'0.0.0.0', 'database_ip':'127.0.0.1', 'port': 3306, 'type':'mysql', 'database_name': 'test', 'user': 'root', 'password':'mysecretpassword'}
-    ]
+    {'server_ip': '0.0.0.0', 'port': 0, 'db_type': 'sqlite',
+        'database_name': 'datastore/generated.db', 'user': '-', 'password': '-'},
+    {'server_ip': '0.0.0.0', 'port': 5432, 'db_type': 'postgres',
+        'database_name': 'test', 'user': 'postgres', 'password': 'mysecretpassword'},
+    {'server_ip': '0.0.0.0', 'port': 3306, 'db_type': 'mysql',
+        'database_name': 'test', 'user': 'root', 'password': 'mysecretpassword'}
+]
 
 
 # sudo docker run --name dorm_test_mysql -p 3306:3306 -e MYSQL_ROOT_PASSWORD=mysecretpassword -d mysql

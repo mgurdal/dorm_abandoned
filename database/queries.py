@@ -48,16 +48,16 @@ class SelectQuery(object):
             tablename=self.model.__tablename__
         )
 
-    def all(self, datatype=None):
+    def all(self, datatype=None, batch_size=None):
         
-        return self._execute(self.sql, datatype=datatype)
+        return self._execute(self.sql, datatype=datatype, batch_size=batch_size)
 
     def first(self, datatype=None):
         self.base_sql = '{0} limit 1;'.format(self.base_sql.rstrip(';'))
         try:
             return next(self._execute(self.sql, datatype=datatype))
-        except:
-            pass
+        except Exception as e:
+            raise e
 
     def where(self, *args, **kwargs):
         where_list = [] # might need to add validation
@@ -174,7 +174,8 @@ class SelectQuery(object):
         return df"""
 
     # hard to test, needs refactor
-    def _execute(self, sql, datatype=None, target_databases=[]):
+    def _execute(self, sql, datatype=dict, batch_size=None):
+        print("Running ", sql)
         """
         jobs, descriptors = [], []
         if not target_databases:
@@ -202,29 +203,43 @@ class SelectQuery(object):
 
         query_set = (record for record in records)
         """
-        cursors = [(db.execute(sql), db.database)
-                   for db in self.databases]  # for
-        #print([db.database for db in self.databases])
-
-        descriptor = list(i[0]
-                          for cursor in cursors for i in cursor[0].description)
-        jobs = [(gevent.spawn(cursor[0].fetchall), cursor[1])
-                for cursor in cursors]
-        gevent.joinall([x[0] for x in jobs])
-        records = [(job[0].value, job[1]) for job in jobs]
-
-        query_set = ((descriptor, instance, record[1])
-                     for record in records for instance in record[0])
-        if not datatype:
-            return (self._make_instance(*x) for x in query_set)
-        elif datatype == 'dict':
-            return (dict(zip(descriptor, record), origin=database) for discriptor, record, database in query_set)
-
-    def _make_instance(self, descriptor, record, database):
+        cursors = []
+        
+        for db in self.databases:
+            cursor = db.execute(sql)
+            cursors.append(cursor)
+            description = [des[0] for des in cursor.description]
+            
+            def get_cursor(batch_size):
+                if batch_size:
+                    next_batch = cursor.fetchmany(batch_size)
+                    while next_batch:
+                        yield next_batch
+                        next_batch = cursor.fetchmany(batch_size)
+                else:
+                    yield cursor.fetchall()
+                    
+            
+            # fetch data with cunks
+            records = cursor.fetchall() # if not batch_size else cursor.fetchmany(batch_size)
+            for record in records:#get_cursor(batch_size):
+                #model = None
+                if not datatype:
+                    model = self.model(**dict(zip(description, record)))
+                    model.conf = db.conf
+                    yield model
+                elif datatype == dict:
+                    model = dict(zip(description, record))
+                    model['conf'] = db.conf
+                    yield model
+                else:
+                    raise Exception("Unsupported result type")
+        
+        
+    def _make_instance(self, descriptor, record):
 
         try:
             instance = self.model(**dict(zip(descriptor, record)))
-            setattr(instance, "origin", database)
         except TypeError as  e:
             raise e
         

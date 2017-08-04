@@ -101,7 +101,7 @@ class SelectQueryTestCase(unittest.TestCase):
             return_value=self.stub_model)  # check the return value
         select_q.all()
         select_q._execute.assert_called_with(
-            'select * from stub_model;', datatype=None)
+            'select * from stub_model;', batch_size=None, datatype=None)
 
     # this method is really important
     def test___getitem__with_one_slice(self):
@@ -110,7 +110,7 @@ class SelectQueryTestCase(unittest.TestCase):
             return_value=self.stub_model)  # check the return value
         select_q[:1]
         select_q._execute.assert_called_with(
-            'select * from stub_model limit 1 offset 0;', datatype=None)
+            'select * from stub_model limit 1 offset 0;', batch_size=None, datatype=None)
 
     # this method is really important, not done yet
     def test___getitem__with_two_slices(self):
@@ -120,7 +120,7 @@ class SelectQueryTestCase(unittest.TestCase):
         select_q[:1, :1]
         # select_q.databases[0]._execute.assert_called_with("hi")
         select_q._execute.assert_called_with(
-            'select * from stub_model limit 1 offset 0;', datatype=None)
+            'select * from stub_model limit 1 offset 0;', batch_size=None, datatype=None)
 
     def test__make_instance_without_refered_fields(self):
         pass
