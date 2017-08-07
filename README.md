@@ -20,7 +20,16 @@
     2) With a tinydb or reducer solution models can easly be found
     3) 
 5) models 
-
+            
+            
+Cases to be considered when generating a model:
+1) PrimaryKey should be defined first (not necessary)
+2) Related Models should be defined before the target Model
+3) ForeignKeys should be replaced with the correct Model name
+4) ManyToMany tables should not be inclueded in code
+    instead they should be defined using ManyToMany field
+5) All of the Model attributes and the Model's Node should be
+    included in the generated docstring 
 ## Create Models
 ```python
 from datetime import datetime

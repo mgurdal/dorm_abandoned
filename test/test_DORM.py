@@ -11,7 +11,7 @@ class DORMTestCase(unittest.TestCase):
         """ initialize """
         self.dorm = DORM()
         self.dummy_config = [{
-            'server_ip': '182.123.123.121',
+            'server_ip': '123.123.123.123',
             'db_type': 'sqlite',
             'database_name': 'test.db',
             'user': 'test',
@@ -22,7 +22,6 @@ class DORMTestCase(unittest.TestCase):
     @patch('dorm.Node')
     def test_create_nodes_from_config(self, Node):
         dorm = self.dorm
-
         dorm.from_dict(self.dummy_config)
         self.assertTrue(hasattr(dorm, 'nodes'))
 

@@ -50,8 +50,6 @@ class DORM(object):
                 #node.node_num = 'node_'+str(id(node))
                 
                 codes = sq.generate("generated_models/")
-                for m in codes:
-                    exec(m)
                 #from generated_models import models
 
                 """ 

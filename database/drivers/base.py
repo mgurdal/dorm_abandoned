@@ -63,14 +63,7 @@ class BaseDriver(object):
     def generate(self, path="generated_models/", node_name="models", save=True):
         """ Generates model class code from model structre 
 
-            Cases to be considered:
-                1) PrimaryKey should be defined first (not necessary)
-                2) Related Models should be defined before the target Model
-                3) ForeignKeys should be replaced with the correct Model name
-                4) ManyToMany tables should not be inclueded in code
-                    instead they should be defined using ManyToMany field
-                5) All of the Model attributes and the Model's Node should be
-                    included in the generated docstring 
+
         """
 
         class_str = """class {name}(models.Model):\n"""
