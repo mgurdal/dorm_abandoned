@@ -16,14 +16,22 @@ class Node(models.Model):
     # driver = models.DriverField() # implement it pls
 
 
-class DORM(object):
+class DORM(models.Model):
     """ DORM is an ORM interface that manages 'Nodes' which manges the database tables via Models"""
-    db = Sqlite({'database_name':'node.db'})
+    __databases__ = [Sqlite({'database_name':'node.db'})]
+    nodes = models.ManyToMany(Node)
+    
+    def __init__(self, *args, **kwargs):
+        super(DORM, self).__init__(*args, **kwargs)
+        self.create_table(Node)
+
     def from_dict(self, config_list):
         """ Generates Nodes from config file """
-        nodes = [Node(**conf) for conf in config_list]
-        setattr(self, 'nodes', nodes)
-
+        """for conf in config_list:
+            self.nodes.add(Node(**conf))
+        """#nodes = [ for conf in config_list]
+        #setattr(self, 'nodes', nodes)
+        pass
 
     def discover(self):
         """ Discovers the tables inside nodes """
@@ -32,12 +40,11 @@ class DORM(object):
             if node.db_type == 'sqlite':
                 # solution 1
                 # node.__databases__.append(Sqlite(vars(node)))
-
+                sq = Sqlite({'database_name':'node.db'})
                 
-                sq = Sqlite(vars(node))
-                    
                 sq.create_table(node)
                 node.save(sq)
+                
                 #print(list(node.select('_id', target_databases=[sq]).all()))
                 #print("-"*10+"Node"+"-"*10)
                 #pprint(vars(sq))

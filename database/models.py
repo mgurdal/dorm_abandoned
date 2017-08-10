@@ -199,7 +199,7 @@ class ForeignKeyReverse(object):
         self.name = None
         self.tablename = None
         self.instance_id = None
-        self.db = None
+        self.db = NoneForeignKey
         self.from_model = None
         self.relate_column = None
 
@@ -396,6 +396,7 @@ class MetaModel(type):
                 for database in model.__databases__:
                     field.update_attr(field_name, model.name,database)
                 refered_fields[field_name] = field
+
             elif isinstance(field, ManyToMany):
                 print("\t\tAdd:", field, "as", field_name)
                 for database in model.__databases__:
@@ -433,6 +434,9 @@ class Model(metaclass=MetaModel):
                     'Unknown column: {0}, expected {1}.'.format(name, self.__fields__.keys()))
             setattr(self, name, field)
 
+        if hasattr(self, 'initialize') and callable(getattr(self, 'initialize')):
+            self.initialize()
+
         super(Model, self).__init__()
 
     @classmethod
@@ -441,7 +445,7 @@ class Model(metaclass=MetaModel):
 
     #@classmethod
     def select(self, *args, target_databases=[]):
-        return SelectQuery(self, *args, target_databases=target_databases)
+        return SelectQuery(model=self, target_databases=target_databases)
 
     #@classmethod
     def update(self, *args, **kwargs):
@@ -457,8 +461,12 @@ class Model(metaclass=MetaModel):
     def __repr__(self):
         return str(vars(self))
 
-    def create_table(self):
-        self.__databases__[0].create_table(self)
+    def create_table(self, table=None):
+        for db in self.__databases__:
+            if table:
+                db.create_table(self)
+                continue
+            db.create_table(self)
 
     def _insert(self, db, sql):
         try:
@@ -479,6 +487,7 @@ class Model(metaclass=MetaModel):
                 field.__databases__ = self.__databases__
 
     def save(self, db=None):
+        self.__databases__ = [db]
         base_query = 'insert into {tablename}({columns}) values({items});'
         columns = []
         values = []

@@ -34,10 +34,12 @@ class SelectQuery(object):
         select title, content from Question where id > 3;
     """
 
-    def __init__(self, model, *args, target_databases=[]):
+    def __init__(self, *args, model=None, target_databases=[]):
+        # order matters
+        self.databases = target_databases if target_databases else model.__databases__
         self.model = model.__class__
         self.base_sql = 'select {columns} from {tablename};'
-        self.databases = target_databases if target_databases else self.model.__databases__
+        
         query_args = list(args) if list(args) else ['*']
         self.query = ', '.join([str(column) for column in query_args])
 

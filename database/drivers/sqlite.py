@@ -56,6 +56,16 @@ class Sqlite(BaseDriver):
             if isinstance(field, ManyToMany):
                 field.drop_m2m_table()
 
+    def _find_related_table(self):
+        pass
+        
+    def _change_with_many_to_many(self):
+        pass
+
+    def _find_many_to_many(self):
+        pass
+
+
     def discover(self):
         """ Creates model structure from database tables """
 
